@@ -405,6 +405,15 @@ const createProfile = async (req, res, next) => {
       throw new ConflictError("user profile exist already exist");
     }
 
+    const findnumber = await prisma.user.findFirst({
+      where: {
+        phoneNumber: userPhoneNumber,
+      }
+    });
+
+    if (findnumber) {
+      throw new ConflictError("number already exist")
+    }
 
     // ✅ Create the user
     const saveuser = await prisma.user.update({
