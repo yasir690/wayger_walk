@@ -3,7 +3,7 @@ const validateRequest = require("../../middleware/validateRequest");
 const userGameRouter = require("express").Router();
 const userGameController = require("../../controllers/user/userGameController");
 const { verifyUserToken } = require("../../middleware/auth");
-const { userCreateGameSchema, userJoinGameSchema, userSearchSchema } = require("../../schema/user/game");
+const { userCreateGameSchema, userJoinGameSchema, userSearchSchema, userCoinPurchaseSchema } = require("../../schema/user/game");
 const handleMultiPartData = require("../../middleware/multiPartData");
 
 
@@ -38,6 +38,21 @@ userGameRouter.post(
   verifyUserToken,
   validateRequest(userJoinGameSchema),
   userGameController.joinGame
+);
+
+userGameRouter.get(
+  "/showCoins",
+  limiter,
+  verifyUserToken,
+  userGameController.showCoins
+);
+
+userGameRouter.post(
+  "/coinPurchase/:coinId",
+  limiter,
+  verifyUserToken,
+  validateRequest(userCoinPurchaseSchema),
+  userGameController.coinPurchase
 );
 
 

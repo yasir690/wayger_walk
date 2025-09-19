@@ -2,12 +2,12 @@ const Joi = require("joi");
 
 const userSearchSchema = Joi.object({
   query: Joi.object({
-    userName:Joi.string().required(),
+    userName: Joi.string().required(),
   }),
   params: Joi.object({
   }),
   body: Joi.object({
-    
+
   }),
 });
 
@@ -18,7 +18,7 @@ const userCreateGameSchema = Joi.object({
     price: Joi.number().required(),
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
-    isReminder:Joi.string().optional(),
+    isReminder: Joi.string().optional(),
     totalPlayers: Joi.number().required(),
     totalSteps: Joi.number().required(),
     gameType: Joi.string().required(),
@@ -39,8 +39,18 @@ const userJoinGameSchema = Joi.object({
   }),
 });
 
-module.exports={
-    userCreateGameSchema,
-    userJoinGameSchema,
-    userSearchSchema
+const userCoinPurchaseSchema = Joi.object({
+  query: Joi.object({}),
+  params: Joi.object({
+    coinId: Joi.string().required(),
+  }),
+  body: Joi.object({
+  }),
+});
+
+module.exports = {
+  userCreateGameSchema,
+  userJoinGameSchema,
+  userSearchSchema,
+  userCoinPurchaseSchema
 };

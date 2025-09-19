@@ -175,10 +175,88 @@ const joinGame = async (req, res, next) => {
     }
 }
 
+const showCoins = async (req, res, next) => {
+    try {
+        const findcoins = await prisma.coinPlan.findMany();
+
+        if (findcoins.length === 0) {
+            throw new NotFoundError("coins not found")
+        }
+
+        handlerOk(res, 200, findcoins, "coins found successfully")
+    } catch (error) {
+        next(error)
+    }
+}
+
+const coinPurchase = async (req, res, next) => {
+    try {
+
+        const { coinId } = req.params;
+        const { id } = req.user;
+
+        const findcoinplan = await prisma.coinPlan.findFirst({
+            where: {
+                id: coinId
+            }
+        });
+
+        if (!findcoinplan) {
+            throw new NotFoundError("coins plan not found")
+        }
+
+        const userCoins = await prisma.coins.findUnique({
+            where: {
+                userId: id
+            }
+        });
+
+        console.log(userCoins, 'user coin');
+
+        if (!userCoins) {
+            await prisma.coins.create({
+                data: {
+                    userId: id,
+                    coins: Number(findcoinplan.coins)
+                }
+            })
+        } else {
+            await prisma.coins.update({
+                where: {
+                    userId: id
+                },
+                data: {
+                    coins: userCoins.coins + Number(findcoinplan.coins)
+                }
+            });
+        }
+
+
+
+        await prisma.coinPurchase.create({
+            data: {
+                userId: id,
+                planId: findcoinplan.id,
+                amountPaid: findcoinplan.price,
+                coinsAdded: findcoinplan.coins
+
+            }
+        })
+
+        handlerOk(res, 200, null, "coin purchase successfully")
+
+
+    } catch (error) {
+        next(error)
+    }
+}
+
 
 module.exports = {
     createGame,
     showGames,
     joinGame,
     userSearch,
+    showCoins,
+    coinPurchase
 }

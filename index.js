@@ -9,6 +9,8 @@ const rootRouter = require("./routes/index");
 const globalErrorMiddleware = require("./middleware/globalMiddleware");
 const dbConnect = require('./db/connectivity');
 const adminSeed = require('./seeder/adminSeed');
+const coinSeed = require('./seeder/coinSeed');
+
 const morgan = require('morgan');
 
 require("dotenv").config();
@@ -34,6 +36,7 @@ dbConnect();
 
 adminSeed();
 
+coinSeed();
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

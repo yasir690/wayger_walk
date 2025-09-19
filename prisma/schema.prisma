@@ -54,6 +54,8 @@ model Admin {
   TermsCondition TermsCondition[]
 
   AboutApp AboutApp[]
+
+  CoinPlan CoinPlan[]
 }
 
 model User {
@@ -86,6 +88,8 @@ model User {
   joinedGames            Game[]   @relation("GamePlayers")      // games user joined
 
   Coins Coins[]
+
+  CoinPurchase CoinPurchase[]
 }
 
 
@@ -201,4 +205,30 @@ model Game {
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @updatedAt
+}
+
+model CoinPlan {
+  id          String   @id @default(uuid())
+  adminId      String
+  coins       String      // number of coins in the package
+  price       String    // base price before discount
+  discount    String?   // optional discount percentage, e.g. 10.0 for 10%
+  finalPrice  String    // price after discount
+  isActive    Boolean  @default(true) // to enable/disable plans
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+admin        Admin     @relation(fields: [adminId], references: [id])
+  purchases   CoinPurchase[]
+}
+
+model CoinPurchase {
+  id          String   @id @default(uuid())
+  userId      String
+  planId      String
+  amountPaid  String
+  coinsAdded  String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  plan        CoinPlan @relation(fields: [planId], references: [id])
 }
