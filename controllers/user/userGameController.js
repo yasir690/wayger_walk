@@ -100,7 +100,7 @@ const showGames = async (req, res, next) => {
         });
 
         if (games.length === 0) {
-            throw new ValidationError("no game found");
+            throw new NotFoundError("no game found");
         }
 
         handlerOk(res, 200, games, "games found successfully");
