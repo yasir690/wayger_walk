@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum otpReason {
+  REGISTER
+  FORGETPASSWORD
+  LOGIN
+}
+
+enum userType {
+  ADMIN
+  USER
+}
+
+enum deviceType {
+  ANDROID
+  IOS
+}
+
+enum gameType {
+  TOURNAMENT
+  ONEONONE
+}
+
+
+
+
+model Admin {
+  id             String      @id @default(uuid())
+  email          String   @unique
+  password       String?
+  name           String?
+  deviceToken    String?
+  otp            String?
+  userType       userType?
+  image          String ?
+ 
+
+  PrivacyPolicy PrivacyPolicy[]
+
+  TermsCondition TermsCondition[]
+
+  AboutApp AboutApp[]
+}
+
+model User {
+  id                     String   @id @default(uuid())
+  email                  String   @unique
+  password               String?
+  phoneNumber            String?  @unique
+  userName               String @default("")
+  height                 String?
+  weight                 String?
+  address                String? 
+  country                String?
+  states                 String?
+  city                   String?
+  gender                 String?
+  deviceType             deviceType?
+  deviceToken            String?
+  isCreatedProfile       Boolean  @default(false)
+  image                  String?
+  userType               userType?
+  notificationOnAndOff   Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  Wallet                 Wallet[]
+  Notification           Notification[]
+  FeedBack               FeedBack[]
+
+  createdGames           Game[]   @relation("UserCreatedGames") // games user created
+  joinedGames            Game[]   @relation("GamePlayers")      // games user joined
+
+  Coins Coins[]
+}
+
+
+
+model Otp {
+  id         String       @id @default(uuid())
+  otp        String    @unique
+  email      String? 
+  otpReason  otpReason
+  expiresAt  DateTime
+  otpUsed    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Wallet {
+  id            String                 @id @default(uuid())
+  userId        String                @unique
+  balance       Float              @default(0.0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id])
+  transactions  WalletTransaction[]
+}
+
+
+
+// Wallet Transaction Log
+model WalletTransaction {
+  id          String             @id @default(uuid())
+  walletId    String
+  amount      Float           // Negative for debits, positive for credits
+  description String?
+  createdAt   DateTime        @default(now())
+  wallet      Wallet          @relation(fields: [walletId], references: [id])
+}
+
+model Coins {
+  id            String                 @id @default(uuid())
+  userId        String                @unique
+  coins       Int              @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id])
+}
+model Notification {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  title        String
+  description  String
+  isRead       Boolean   @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PrivacyPolicy {
+  id                 String                 @id @default(uuid())
+  privacyPolicy      String
+  createdById        String
+  createdBy          Admin               @relation(fields: [createdById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime?           @updatedAt
+}
+
+model TermsCondition {
+  id                 String                 @id @default(uuid())
+  TermsCondition      String
+  createdById        String
+  createdBy          Admin               @relation(fields: [createdById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime?           @updatedAt
+}
+
+model AboutApp {
+  id                 String                 @id @default(uuid())
+  AboutApp      String
+  createdById        String
+  createdBy          Admin               @relation(fields: [createdById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime?           @updatedAt
+}
+
+model FeedBack {
+  id                 String                 @id @default(uuid())
+  subject      String?
+  message      String?
+  Images      Json
+  createdById        String
+  createdBy          User               @relation(fields: [createdById], references: [id])
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime?           @updatedAt
+}
+
+model Game {
+  id               String    @id @default(uuid())
+  gameType         gameType?
+  gamePrice        Float
+  startDate        DateTime
+  endDate          DateTime
+  image            String
+  gameTitle        String
+  gameCode         String
+  gameDescription  String
+  gameDuration     String
+  totalPlayers     User[]    @relation("GamePlayers") // players joining the game
+  totalSteps       Int?
+  isReminder       Boolean?   @default(false)
+  createdById      String
+  createdBy        User      @relation("UserCreatedGames", fields: [createdById], references: [id]) // game creator
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+}
