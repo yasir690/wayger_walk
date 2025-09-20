@@ -372,10 +372,8 @@ const resendOtp = async (req, res, next) => {
 
 const createProfile = async (req, res, next) => {
   try {
-    const { email } = req.user;
+    const { email, id } = req.user;
     const file = req.file;
-
-    const { id } = req.user;
     const {
       userPhoneNumber,
       userAddress,
@@ -387,12 +385,16 @@ const createProfile = async (req, res, next) => {
       userGender
     } = req.body;
 
-    const fileBuffer = file.buffer;
-    const folder = 'uploads';
-    const filename = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
-    const contentType = file.mimetype || 'application/octet-stream';
+    let s3ImageUrl = null; 
 
-    const s3ImageUrl = await uploadFileWithFolder(fileBuffer, filename, contentType, folder);
+    if (file) {
+      const fileBuffer = file.buffer;
+      const folder = 'uploads';
+      const filename = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
+      const contentType = file.mimetype || 'application/octet-stream';
+
+      s3ImageUrl = await uploadFileWithFolder(fileBuffer, filename, contentType, folder);
+    }
 
     const existprofile = await prisma.user.findFirst({
       where: {
@@ -402,7 +404,7 @@ const createProfile = async (req, res, next) => {
     });
 
     if (existprofile) {
-      throw new ConflictError("user profile exist already exist");
+      throw new ConflictError("User profile already exists");
     }
 
     const findnumber = await prisma.user.findFirst({
@@ -412,74 +414,54 @@ const createProfile = async (req, res, next) => {
     });
 
     if (findnumber) {
-      throw new ConflictError("number already exist")
+      throw new ConflictError("Phone number already exists");
     }
 
-    // ✅ Create the user
+    // Build data object dynamically, only include image if uploaded
+    const updateData = {
+      phoneNumber: userPhoneNumber,
+      states: userStates,
+      country: userCountry,
+      address: userAddress,
+      height: userHeight,
+      weight: userWeight,
+      isCreatedProfile: true,
+      city: userCity,
+      gender: userGender,
+    };
+
+    if (s3ImageUrl) {
+      updateData.image = s3ImageUrl;
+    }
+
     const saveuser = await prisma.user.update({
-      where: {
-        email,
-      },
-      data: {
-        phoneNumber: userPhoneNumber,
-        states: userStates,
-        country: userCountry,
-        address: userAddress,
-        height: userHeight,
-        weight: userWeight,
-        isCreatedProfile: true,
-        image: s3ImageUrl,
-        city: userCity,
-        gender: userGender
-
-      },
-
+      where: { email },
+      data: updateData,
     });
 
-    // ✅ Mark OTP as used
-    const otpRecord = await prisma.otp.findFirst({
-      where: {
-        email: email,
-      },
-    });
-
-    if (!otpRecord) {
-      throw new NotFoundError("OTP not found");
-    }
+    // Mark OTP as used
+    const otpRecord = await prisma.otp.findFirst({ where: { email } });
+    if (!otpRecord) throw new NotFoundError("OTP not found");
 
     await prisma.otp.update({
-      where: {
-        id: otpRecord.id, // Use the id of the found OTP record
-      },
-      data: {
-        otpUsed: true,
-      },
+      where: { id: otpRecord.id },
+      data: { otpUsed: true },
     });
 
-    // Create Wallet with 0 balance
+    // Create wallet
     await prisma.wallet.create({
-      data: {
-        userId: saveuser.id,
-        balance: 0.0,
-      },
+      data: { userId: saveuser.id, balance: 0.0 },
     });
 
     // Generate token
-    const token = genToken({
-      id: saveuser.id,
-      userType: userConstants.USER,
-    });
+    const token = genToken({ id: saveuser.id, userType: userConstants.USER });
 
-    return handlerOk(
-      res,
-      201,
-      { ...saveuser, userToken: token },
-      "Profile Created successfully"
-    );
+    return handlerOk(res, 201, { ...saveuser, userToken: token }, "Profile Created successfully");
   } catch (error) {
     next(error);
   }
 };
+
 
 const userEditProfile = async (req, res, next) => {
   try {
