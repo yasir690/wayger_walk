@@ -24,7 +24,7 @@ const userSearch = async (req, res, next) => {
         if (users.length === 0) {
             // throw new NotFoundError("users not found")
         
-            handlerOk(res,200,null,"users not found")
+           return handlerOk(res,200,null,"users not found")
         }
 
         handlerOk(res, 200, users, "users found successfully")
@@ -104,7 +104,7 @@ const showGames = async (req, res, next) => {
         if (games.length === 0) {
             // throw new NotFoundError("no game found");
 
-                        handlerOk(res,200,null,"no game found")
+                       return handlerOk(res,200,null,"no game found")
 
 
         }
