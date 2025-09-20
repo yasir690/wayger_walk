@@ -112,7 +112,7 @@ const userVerifyOtp = async (req, res, next) => {
   try {
     const {
       userEmail,
-      userName,
+      // userName,
       otp,
       userPassword,
       userDeviceToken,
@@ -148,7 +148,7 @@ const userVerifyOtp = async (req, res, next) => {
         data: {
           email: userEmail,
           // password: hashedPassword,
-          userName: userName,
+          // userName: userName,
           deviceToken: userDeviceToken,
           deviceType: userDeviceType,
           userType: userConstants.USER,
@@ -382,7 +382,8 @@ const createProfile = async (req, res, next) => {
       userStates,
       userCountry,
       userCity,
-      userGender
+      userGender,
+      userName
     } = req.body;
 
     let s3ImageUrl = null; 
@@ -428,6 +429,7 @@ const createProfile = async (req, res, next) => {
       isCreatedProfile: true,
       city: userCity,
       gender: userGender,
+      userName:userName
     };
 
     if (s3ImageUrl) {

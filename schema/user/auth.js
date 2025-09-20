@@ -23,7 +23,7 @@ const userVerifyOtpSchema = Joi.object({
     //   .messages({
     //     'string.pattern.base': 'Password must include uppercase, lowercase, and a number.',
     //   }),
-    userName: Joi.string().optional(),
+    // userName: Joi.string().optional(),
     userDeviceType: Joi.valid("ANDROID", "IOS").optional(),
     userDeviceToken: Joi.string().optional(),
   }),
