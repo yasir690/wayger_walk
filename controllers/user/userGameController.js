@@ -39,7 +39,7 @@ const createGame = async (req, res, next) => {
     try {
         const { id } = req.user;
         const { price, startDate, endDate,
-            gameType, gamedescription, gameTitle, gameDuration, totalSteps, isReminder } = req.body;
+            gameType, gamedescription, gameTitle, gameDuration, totalSteps, isReminder,isPrivate } = req.body;
         const file = req.file;
 
         console.log(req.body);
@@ -69,6 +69,7 @@ const createGame = async (req, res, next) => {
                 gameDuration,
                 totalSteps: Number(totalSteps),
                 image: s3ImageUrl,
+                isPrivate: gameType === 'ONEONONE' ? true : isPrivate === 'true',
                 totalPlayers: {
                     connect: [{ id }], // ✅ connect creator as first participant
                 },
@@ -120,7 +121,7 @@ const joinGame = async (req, res, next) => {
     try {
         const { id } = req.user;
         const { gameId } = req.params;
-        const { gameCode } = req.body;
+        const { gameCode,userIds = []  } = req.body;
 
         const game = await prisma.game.findUnique({
             where: {
@@ -140,19 +141,23 @@ const joinGame = async (req, res, next) => {
             throw new ValidationError("you cannot join your own game");
         }
 
-        // Initialize array if null
         const currentPlayers = Array.isArray(game.totalPlayers) ? game.totalPlayers : [];
 
-        // Restrict based on gameType
         if (game.gameType === "ONEONONE" && currentPlayers.length >= 2) {
             throw new ValidationError("This one-on-one game is already full");
         }
 
-        // Prevent duplicate join
         if (currentPlayers.includes(id)) {
             throw new ValidationError("You have already joined this game");
         }
 
+          // Restrict private TOURNAMENT access using userIds
+          
+        if (game.gameType === "TOURNAMENT" && game.isPrivate) {
+            if (!Array.isArray(userIds) || !userIds.includes(id)) {
+                throw new ValidationError("You are not allowed to join this private tournament");
+            }
+        }
 
 
 

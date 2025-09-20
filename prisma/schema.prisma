@@ -200,6 +200,7 @@ model Game {
   totalPlayers     User[]    @relation("GamePlayers") // players joining the game
   totalSteps       Int?
   isReminder       Boolean?   @default(false)
+  isPrivate        Boolean?   @default(false)
   createdById      String
   createdBy        User      @relation("UserCreatedGames", fields: [createdById], references: [id]) // game creator
 

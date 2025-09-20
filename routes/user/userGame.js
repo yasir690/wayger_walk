@@ -35,7 +35,7 @@ userGameRouter.get(
 userGameRouter.post(
   "/joinGame/:gameId",
   limiter,
-  verifyUserToken,
+  // verifyUserToken,
   validateRequest(userJoinGameSchema),
   userGameController.joinGame
 );
