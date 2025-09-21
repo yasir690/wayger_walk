@@ -27,7 +27,7 @@ const userSearch = async (req, res, next) => {
            return handlerOk(res,200,null,"users not found")
         }
 
-        handlerOk(res, 200, users, "users found successfully")
+      return  handlerOk(res, 200, users, "users found successfully")
 
     } catch (error) {
         next(error)
@@ -37,9 +37,9 @@ const userSearch = async (req, res, next) => {
 
 const createGame = async (req, res, next) => {
     try {
-        const { id } = req.user;
+        const { id,userName } = req.user;
         const { price, startDate, endDate,
-            gameType, gamedescription, gameTitle, gameDuration, totalSteps, isReminder,isPrivate } = req.body;
+            gameType, gamedescription, gameTitle, gameDuration, totalSteps, isReminder,isPrivate,inviteUsers = '[]'  } = req.body;
         const file = req.file;
 
         console.log(req.body);
@@ -56,6 +56,10 @@ const createGame = async (req, res, next) => {
 
         const s3ImageUrl = await uploadFileWithFolder(fileBuffer, filename, contentType, folder);
 
+        const privateGame = gameType === 'ONEONONE' ? true : isPrivate === 'true';
+
+const parsedInviteUsers = typeof inviteUsers === 'string' ? JSON.parse(inviteUsers) : inviteUsers;
+
         const game = await prisma.game.create({
             data: {
                 createdById: id,
@@ -71,19 +75,37 @@ const createGame = async (req, res, next) => {
                 image: s3ImageUrl,
                 isPrivate: gameType === 'ONEONONE' ? true : isPrivate === 'true',
                 totalPlayers: {
-                    connect: [{ id }], // ✅ connect creator as first participant
+                    connect: [{ id }],
+                },
+                invitedFriends:{
+                connect:parsedInviteUsers.map(userid=>({id:userid}))
                 },
                 ...(typeof isReminder !== 'undefined' && {
                     isReminder: isReminder === 'true',
                 }),
             },
             include: {
-                totalPlayers: true, // optional: to return full player details
+                totalPlayers: true,
+                invitedFriends:true 
             },
         });
 
         if (!game) {
             throw new ValidationError("game not create");
+        }
+
+
+         if (privateGame && parsedInviteUsers.length > 0) {
+            const notifications = parsedInviteUsers.map(userId => ({
+                userId: userId,
+                title: "Game Invitation",
+                description: `${userName} invited you to join the game ${gameTitle}`,
+            }));
+
+            await prisma.notification.createMany({
+                data: notifications,
+                skipDuplicates: true,
+            });
         }
 
         handlerOk(res, 201, game, "game created successfully")
@@ -99,6 +121,7 @@ const showGames = async (req, res, next) => {
         const games = await prisma.game.findMany({
             include: {
                 totalPlayers: true,
+                invitedFriends:true
             }
         });
 
@@ -110,7 +133,39 @@ const showGames = async (req, res, next) => {
 
         }
 
-        handlerOk(res, 200, games, "games found successfully");
+       return handlerOk(res, 200, games, "games found successfully");
+
+    } catch (error) {
+        next(error)
+    }
+}
+
+const myGames=async (req,res,next) => {
+   try {
+        const {id}=req.user;  
+        const games = await prisma.game.findMany({
+
+             where:{
+                invitedFriends:{
+some: {
+        id: id, // id from req.user
+      },                }
+             },
+            include: {
+                // totalPlayers: true,
+                invitedFriends:true
+            }
+        });
+
+        if (games.length === 0) {
+            // throw new NotFoundError("no game found");
+
+                       return handlerOk(res,200,null,"no game found")
+
+
+        }
+
+       return handlerOk(res, 200, games, "games found successfully");
 
     } catch (error) {
         next(error)
@@ -262,6 +317,32 @@ const coinPurchase = async (req, res, next) => {
     }
 }
 
+const saveUserStep=async (req,res,next) => {
+    try {
+        const {step,distance,sources,date}=req.body;
+        const {id}=req.user;
+
+        const savestep=await prisma.userStep.create({
+            data:{
+                steps:step,
+                distance:distance,
+                sources:sources,
+                date:date,
+                userId:id
+            },
+        
+        });
+
+        if(!savestep){
+            throw new ValidationError("step not save")
+        }
+
+        handlerOk(res,200,savestep,"step save successfully");
+    } catch (error) {
+        next(error)
+    }
+}
+
 
 module.exports = {
     createGame,
@@ -269,5 +350,7 @@ module.exports = {
     joinGame,
     userSearch,
     showCoins,
-    coinPurchase
+    coinPurchase,
+    saveUserStep,
+    myGames
 }

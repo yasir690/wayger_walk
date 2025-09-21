@@ -608,12 +608,37 @@ const getMe = async (req, res, next) => {
       },
       include: {
         // Wallet: true,
-        // ConnectPurchase: true,
-        // UserSubscription: true,
-        // interests: true,
-        Coins: true
+        Coins: true,
+        UserStep:true
       },
     });
+
+    const obj={
+      id:finduser.id,
+      email:finduser.email,
+      password:finduser.password,
+      phoneNumber:finduser.password,
+      userName:finduser.userName,
+      height:finduser.height,
+      weight:finduser.weight,
+      address:finduser.address,
+      country:finduser.country,
+      states:finduser.states,
+      city:finduser.city,
+      gender:finduser.gender,
+      deviceType:finduser.deviceToken,
+      deviceType:finduser.deviceType,
+      isCreatedProfile:finduser.isCreatedProfile,
+      image:finduser.image,
+      userType:finduser.userType,
+      notificationOnAndOff:finduser.notificationOnAndOff,
+      createdAt:finduser.createdAt,
+      updatedAt:finduser.updatedAt,
+      Coins: finduser.Coins[0]?.coins || 0,
+      Steps:finduser.UserStep[0]?.steps || 0
+    }
+
+
 
     const token = genToken({
       id: finduser.id,
@@ -627,7 +652,7 @@ const getMe = async (req, res, next) => {
     handlerOk(
       res,
       200,
-      { ...finduser, ...response },
+      { obj, ...response },
       "user found successfully"
     );
   } catch (error) {

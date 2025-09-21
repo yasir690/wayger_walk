@@ -63,7 +63,7 @@ model User {
   email                  String   @unique
   password               String?
   phoneNumber            String?  @unique
-  userName               String @default("")
+  userName               String   @default("")
   height                 String?
   weight                 String?
   address                String? 
@@ -83,13 +83,15 @@ model User {
   Wallet                 Wallet[]
   Notification           Notification[]
   FeedBack               FeedBack[]
+  Coins                  Coins[]
+  CoinPurchase           CoinPurchase[]
+  UserStep               UserStep[]
 
-  createdGames           Game[]   @relation("UserCreatedGames") // games user created
-  joinedGames            Game[]   @relation("GamePlayers")      // games user joined
-
-  Coins Coins[]
-
-  CoinPurchase CoinPurchase[]
+  // 🟢 Game relations with unique names
+  createdGames           Game[]   @relation("UserCreatedGames")     // games user created
+  joinedGames            Game[]   @relation("GamePlayers")          // games user joined
+  invitedGames           Game[]   @relation("InvitePlayers")        // games user invited to
+  wonGames               Game[]   @relation("GameWinner")           // games user won (new relation)
 }
 
 
@@ -197,12 +199,19 @@ model Game {
   gameCode         String
   gameDescription  String
   gameDuration     String
-  totalPlayers     User[]    @relation("GamePlayers") // players joining the game
-  totalSteps       Int?
+  isEnded          Boolean    @default(false)
   isReminder       Boolean?   @default(false)
   isPrivate        Boolean?   @default(false)
+  totalSteps       Int?
+
+  // 🟢 Relations
+  totalPlayers     User[]    @relation("GamePlayers")     // players joined the game
+  invitedFriends   User[]    @relation("InvitePlayers")   // invited players
   createdById      String
-  createdBy        User      @relation("UserCreatedGames", fields: [createdById], references: [id]) // game creator
+  createdBy        User      @relation("UserCreatedGames", fields: [createdById], references: [id])
+
+  winnerId         String?
+  winner           User?     @relation("GameWinner", fields: [winnerId], references: [id])
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @updatedAt
@@ -232,4 +241,16 @@ model CoinPurchase {
 
   user        User     @relation(fields: [userId], references: [id])
   plan        CoinPlan @relation(fields: [planId], references: [id])
+}
+
+model UserStep{
+    id          String   @id @default(uuid())
+    userId      String
+    steps       Int
+    distance    Float
+    sources     Json
+    date        DateTime
+
+    user        User     @relation(fields: [userId], references: [id])
+
 }
