@@ -194,15 +194,13 @@ model Game {
   gamePrice        Float
   startDate        DateTime
   endDate          DateTime
-  image            String
+  image            String?
   gameTitle        String
   gameCode         String
   gameDescription  String
-  gameDuration     String
   isEnded          Boolean    @default(false)
   isReminder       Boolean?   @default(false)
   isPrivate        Boolean?   @default(false)
-  totalSteps       Int?
 
   // 🟢 Relations
   totalPlayers     User[]    @relation("GamePlayers")     // players joined the game
