@@ -11,7 +11,7 @@ const dbConnect = require('./db/connectivity');
 const adminSeed = require('./seeder/adminSeed');
 const coinSeed = require('./seeder/coinSeed');
 const prisma = require("./config/prismaConfig");
-const cron= require('node-cron');
+const cron = require('node-cron');
 
 const morgan = require('morgan');
 
@@ -59,7 +59,7 @@ cron.schedule('*/1 * * * *', async () => {
       },
       include: {
         totalPlayers: true,
-        invitedFriends:true
+        invitedFriends: true
       },
     });
 
@@ -71,7 +71,7 @@ cron.schedule('*/1 * * * *', async () => {
     console.log(`🔍 Found ${endedGames.length} ended game(s).`);
 
     for (const game of endedGames) {
-      const { id: gameId, gameTitle, totalPlayers,invitedFriends } = game;
+      const { id: gameId, gameTitle, totalPlayers, invitedFriends } = game;
       const playerIds = invitedFriends.map(player => player.id);
 
       if (playerIds.length === 0) {

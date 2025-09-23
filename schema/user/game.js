@@ -55,10 +55,22 @@ const userStepSchema = Joi.object({
   params: Joi.object({
   }),
   body: Joi.object({
-    step:Joi.number().required(),
-    distance:Joi.number().required(),
-    sources:Joi.array().items(Joi.string()).required(),
-    date:Joi.date().required()
+    step: Joi.number().required(),
+    distance: Joi.number().required(),
+    sources: Joi.array().items(Joi.string()).required(),
+    date: Joi.date().required()
+  }),
+});
+
+
+const userMyGameSchema = Joi.object({
+  query: Joi.object({
+    gameType: Joi.string().valid('TOURNAMENT', 'ONEONONE').optional(),
+  }),
+  params: Joi.object({
+  }),
+  body: Joi.object({
+
   }),
 });
 
@@ -67,5 +79,6 @@ module.exports = {
   userJoinGameSchema,
   userSearchSchema,
   userCoinPurchaseSchema,
-  userStepSchema
+  userStepSchema,
+  userMyGameSchema
 };

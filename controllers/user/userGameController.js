@@ -231,38 +231,29 @@ const showGames = async (req, res, next) => {
 const myGames = async (req, res, next) => {
     try {
         const { id } = req.user;
+        const { gameType } = req.query;
+        const now = new Date();
+
+
         const games = await prisma.game.findMany({
-
             where: {
-
-                // invitedFriends: {
-                //     some: {
-                //         id: id,
-                //     },
-                // },
-                // createdById: {
-                //     some: {
-                //         id: id,
-                //     },
-                // }
-
-                OR: [
+                AND: [
+                    // user scope
                     {
-                        invitedFriends: {
-                            some: {
-                                id: id,  // user is in invitedFriends
-                            },
-                        },
+                        OR: [
+                            { createdById: id },
+                            { invitedFriends: { some: { id } } },
+                        ],
                     },
-                    {
-                        createdById: id, // user created the game
-                    },
+                    { startDate: { gte: now } },
+                    { gameType: gameType },
                 ],
             },
             include: {
-                // totalPlayers: true,
-                invitedFriends: true
-            }
+                invitedFriends: true,
+                // totalPlayers: true, // uncomment if needed
+            },
+            orderBy: { startDate: 'asc' },
         });
 
         if (games.length === 0) {
