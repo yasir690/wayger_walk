@@ -652,7 +652,7 @@ const getMe = async (req, res, next) => {
     handlerOk(
       res,
       200,
-      { obj, ...response },
+      { ...obj, ...response },
       "user found successfully"
     );
   } catch (error) {
