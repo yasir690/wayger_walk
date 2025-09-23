@@ -250,5 +250,6 @@ model UserStep{
     date        DateTime
 
     user        User     @relation(fields: [userId], references: [id])
+    @@unique([userId, date]) 
 
 }

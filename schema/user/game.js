@@ -65,6 +65,17 @@ const userStepSchema = Joi.object({
 
 const userMyGameSchema = Joi.object({
   query: Joi.object({
+    gameType: Joi.string().valid('PRESENT', 'PAST','FUTURE').optional(),
+  }),
+  params: Joi.object({
+  }),
+  body: Joi.object({
+
+  }),
+});
+
+const userShowGameSchema = Joi.object({
+  query: Joi.object({
     gameType: Joi.string().valid('TOURNAMENT', 'ONEONONE').optional(),
   }),
   params: Joi.object({
@@ -80,5 +91,6 @@ module.exports = {
   userSearchSchema,
   userCoinPurchaseSchema,
   userStepSchema,
-  userMyGameSchema
+  userMyGameSchema,
+  userShowGameSchema
 };
