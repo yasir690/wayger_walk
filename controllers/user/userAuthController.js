@@ -386,7 +386,7 @@ const createProfile = async (req, res, next) => {
       userName
     } = req.body;
 
-    let s3ImageUrl = null; 
+    let s3ImageUrl = null;
 
     if (file) {
       const fileBuffer = file.buffer;
@@ -429,7 +429,7 @@ const createProfile = async (req, res, next) => {
       isCreatedProfile: true,
       city: userCity,
       gender: userGender,
-      userName:userName
+      userName: userName
     };
 
     if (s3ImageUrl) {
@@ -609,33 +609,33 @@ const getMe = async (req, res, next) => {
       include: {
         // Wallet: true,
         Coins: true,
-        UserStep:true
+        UserStep: true
       },
     });
 
-    const obj={
-      id:finduser.id,
-      email:finduser.email,
-      password:finduser.password,
-      phoneNumber:finduser.password,
-      userName:finduser.userName,
-      height:finduser.height,
-      weight:finduser.weight,
-      address:finduser.address,
-      country:finduser.country,
-      states:finduser.states,
-      city:finduser.city,
-      gender:finduser.gender,
-      deviceType:finduser.deviceToken,
-      deviceType:finduser.deviceType,
-      isCreatedProfile:finduser.isCreatedProfile,
-      image:finduser.image,
-      userType:finduser.userType,
-      notificationOnAndOff:finduser.notificationOnAndOff,
-      createdAt:finduser.createdAt,
-      updatedAt:finduser.updatedAt,
+    const obj = {
+      id: finduser.id,
+      email: finduser.email,
+      password: finduser.password,
+      phoneNumber: finduser.password,
+      userName: finduser.userName,
+      height: finduser.height,
+      weight: finduser.weight,
+      address: finduser.address,
+      country: finduser.country,
+      states: finduser.states,
+      city: finduser.city,
+      gender: finduser.gender,
+      deviceType: finduser.deviceToken,
+      deviceType: finduser.deviceType,
+      isCreatedProfile: finduser.isCreatedProfile,
+      image: finduser.image,
+      userType: finduser.userType,
+      notificationOnAndOff: finduser.notificationOnAndOff,
+      createdAt: finduser.createdAt,
+      updatedAt: finduser.updatedAt,
       Coins: finduser.Coins[0]?.coins || 0,
-      Steps:finduser.UserStep[0]?.steps || 0
+      Steps: finduser.UserStep[0]?.steps || 0
     }
 
 

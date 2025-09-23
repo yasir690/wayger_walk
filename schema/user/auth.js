@@ -103,6 +103,7 @@ const createProfileSchema = Joi.object({
     userAddress: Joi.string().required(),
     userHeight: Joi.string().required(),
     userWeight: Joi.string().required(),
+    userName: Joi.string().required(),
 
 
 
