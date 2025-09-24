@@ -617,7 +617,7 @@ const getMe = async (req, res, next) => {
       id: finduser.id,
       email: finduser.email,
       password: finduser.password,
-      phoneNumber: finduser.password,
+      phoneNumber: finduser.phoneNumber,
       userName: finduser.userName,
       height: finduser.height,
       weight: finduser.weight,
