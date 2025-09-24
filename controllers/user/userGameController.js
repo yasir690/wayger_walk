@@ -163,19 +163,37 @@ const myGames = async (req, res, next) => {
         const { gameType } = req.query;
         const now = new Date();
 
+        console.log(now);
+        
+        const baseCondition = {
+            OR: [
+                { createdById: id },
+                { invitedFriends: { some: { id } } },
+            ],
+        };
+
+        // Additional time-based filter
+        let timeCondition = {};
+        if (gameType === "PRESENT") {
+            timeCondition = {
+                startDate: { lte: now },
+                endDate: { gte: now },
+            };
+        } else if (gameType === "PAST") {
+            timeCondition = {
+                endDate: { lt: now },
+            };
+        } else if (gameType === "FUTURE") {
+            timeCondition = {
+                startDate: { gt: now },
+            };
+        }
 
         const games = await prisma.game.findMany({
             where: {
                 AND: [
-                    // user scope
-                    {
-                        OR: [
-                            { createdById: id },
-                            { invitedFriends: { some: { id } } },
-                        ],
-                    },
-                    { startDate: { gte: now } },
-                    { gameType: gameType },
+                    baseCondition,
+                    timeCondition,
                 ],
             },
             include: {
@@ -186,19 +204,16 @@ const myGames = async (req, res, next) => {
         });
 
         if (games.length === 0) {
-            // throw new NotFoundError("no game found");
-
-            return handlerOk(res, 200, null, "no game found")
-
-
+            return handlerOk(res, 200, null, "no game found");
         }
 
         return handlerOk(res, 200, games, "games found successfully");
 
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
+
 
 const joinGame = async (req, res, next) => {
     try {
