@@ -634,8 +634,8 @@ const getMe = async (req, res, next) => {
       notificationOnAndOff: finduser.notificationOnAndOff,
       createdAt: finduser.createdAt,
       updatedAt: finduser.updatedAt,
-      Coins: finduser.Coins[0]?.coins || 0,
-      Steps: finduser.UserStep[0]?.steps || 0
+      coins: finduser.Coins[0]?.coins || 0,
+      steps: finduser.UserStep[0]?.steps || 0
     }
 
 
