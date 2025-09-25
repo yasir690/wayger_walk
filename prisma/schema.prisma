@@ -35,6 +35,12 @@ enum gameType {
   ONEONONE
 }
 
+enum gameStatus {
+  PASTGAME
+  ONGOINGAME
+  FUTUREGAME
+}
+
 
 
 
@@ -192,6 +198,8 @@ model Game {
   id               String    @id @default(uuid())
   gameType         gameType?
   gamePrice        Float
+  currentPrice        Float?
+  gameStatus      gameStatus?
   startDate        DateTime
   endDate          DateTime
   image            String?

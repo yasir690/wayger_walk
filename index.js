@@ -14,6 +14,7 @@ const prisma = require("./config/prismaConfig");
 const cron = require('node-cron');
 
 const morgan = require('morgan');
+const { gameStatusConstants } = require('./constants/constants');
 
 
 require("dotenv").config();
@@ -134,8 +135,10 @@ cron.schedule('*/1 * * * *', async () => {
         data: {
           isEnded: true,
           winnerId: winnerUser.id,
+          gameStatus: gameStatusConstants.PAST
         },
       });
+
 
       console.log(`🏆 Game "${gameTitle}" ended. Winner: ${winnerUser.userName} with ${stepCount} steps.`);
     }

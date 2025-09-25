@@ -2,7 +2,7 @@ module.exports = {
   otpConstants: {
     REGISTER: "REGISTER",
     FORGETPASSWORD: "FORGETPASSWORD",
-    LOGIN:"LOGIN"
+    LOGIN: "LOGIN"
   },
   genderConstants: {
     MALE: "MALE",
@@ -16,7 +16,11 @@ module.exports = {
     ADMIN: "ADMIN",
     USER: "USER",
   },
-
+  gameStatusConstants: {
+    PRESENT: "PRESENT",
+    PAST: "PAST",
+    FUTURE: "FUTURE",
+  },
 
 
 

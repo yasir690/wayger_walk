@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Game` ADD COLUMN `gameStatus` ENUM('PASTGAME', 'ONGOINGAME', 'FUTUREGAME') NULL;

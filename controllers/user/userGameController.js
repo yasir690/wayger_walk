@@ -1,10 +1,12 @@
 const prisma = require("../../config/prismaConfig");
-const { ValidationError, NotFoundError, BadRequestError } = require("../../resHandler/CustomError");
+const { ValidationError, NotFoundError, BadRequestError, ConflictError } = require("../../resHandler/CustomError");
 const { handlerOk } = require("../../resHandler/responseHandler");
 const { generateOtp } = require("../../utils/generateOtp");
 const { v4: uuidv4 } = require('uuid');
 const path = require("path");
 const uploadFileWithFolder = require("../../utils/s3Upload");
+const { gameStatus } = require("@prisma/client");
+const { gameStatusConstants } = require("../../constants/constants");
 
 const userSearch = async (req, res, next) => {
     try {
@@ -118,29 +120,48 @@ const showGames = async (req, res, next) => {
     try {
         const { gameType } = req.query;
         console.log(gameType);
-        
-        const {id}=req.user;
+
+        const { id } = req.user;
         const now = new Date();
 
         console.log(now);
-        
 
-      const games = await prisma.game.findMany({
-    where: {
-        gameType: gameType,
-        startDate: {
-            gte: now,
-        },
-        NOT: [
-            { createdById: id },
-            { invitedFriends: { some: { id: id } } }
-        ]
-    },
-    include: {
-        totalPlayers: true,
-        invitedFriends: true
-    }
-});
+
+        const games = await prisma.game.findMany({
+            where: {
+                gameType: gameType,
+                NOT: [
+                    { createdById: id },
+                    { invitedFriends: { some: { id: id } } }
+                ],
+                OR: [
+                    {
+                        startDate: { gte: now },  // Future games
+                    },
+                    {
+                        startDate: { lte: now },  // Ongoing games (started already)
+                        endDate: { gte: now },    // Ongoing games (not ended yet)
+                        isEnded: false,           // Make sure the game is still ongoing
+                    },
+                ],
+            },
+            include: {
+                totalPlayers: true,
+                invitedFriends: true
+            }
+        });
+
+
+        if (games.length > 0) {
+            games.forEach((game) => {
+                if (game.startDate < now && game.endDate > now && !game.isEnded) {
+                    game.gameStatus = gameStatusConstants.ONGOING;  // Ongoing game
+                } else if (game.startDate >= now) {
+                    game.gameStatus = gameStatusConstants.FUTURE;   // Future game
+                }
+            });
+        }
+
 
         if (games.length === 0) {
             // throw new NotFoundError("no game found");
@@ -164,7 +185,7 @@ const myGames = async (req, res, next) => {
         const now = new Date();
 
         console.log(now);
-        
+
         const baseCondition = {
             OR: [
                 { createdById: id },
@@ -221,6 +242,15 @@ const joinGame = async (req, res, next) => {
         const { gameId } = req.params;
         const { gameCode, userIds = [] } = req.body;
 
+        const finduser = await prisma.user.findUnique({
+            where: {
+                id: id
+            },
+            include: {
+                Coins: true
+            }
+        });
+
         const game = await prisma.game.findUnique({
             where: {
                 id: gameId,
@@ -233,6 +263,10 @@ const joinGame = async (req, res, next) => {
 
         if (!game) {
             throw new NotFoundError("game or game code not found");
+        }
+
+        if (game.gamePrice >= finduser.Coins[0]?.coins) {
+            throw new ConflictError("You do not have enough coins to play this game.")
         }
 
         if (game.createdById === id) {
@@ -251,11 +285,14 @@ const joinGame = async (req, res, next) => {
 
         // Restrict private TOURNAMENT access using userIds
 
-        if (game.gameType === "TOURNAMENT" && game.isPrivate) {
-            if (!Array.isArray(userIds) || !userIds.includes(id)) {
-                throw new ValidationError("You are not allowed to join this private tournament");
-            }
-        }
+        // if (game.gameType === "TOURNAMENT" && game.isPrivate) {
+        //     if (!Array.isArray(userIds) || !userIds.includes(id)) {
+        //         throw new ValidationError("You are not allowed to join this private tournament");
+        //     }
+        // }
+
+        // Double the game price if the number of players increases
+        const updatedGamePrice = game.gamePrice * (currentPlayers.length + 1);
 
 
 
@@ -267,6 +304,7 @@ const joinGame = async (req, res, next) => {
                 totalPlayers: {
                     connect: { id },
                 },
+                currentPrice: updatedGamePrice,
             },
             include: {
                 totalPlayers: true,
@@ -376,7 +414,7 @@ const saveUserStep = async (req, res, next) => {
 
         // });
 
-        
+
         const savestep = await prisma.userStep.upsert({
             where: {
                 userId_date: {
