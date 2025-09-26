@@ -24,7 +24,7 @@ const userCreateGameSchema = Joi.object({
     gameType: Joi.string().required(),
     gamedescription: Joi.string().required(),
     gameTitle: Joi.string().required(),
-    gameDuration: Joi.string().required(),
+    gameDuration: Joi.string().optional(),
     inviteUsers: Joi.array().items(Joi.string()).optional(),
     isPrivate: Joi.boolean().optional()
   }),
