@@ -130,6 +130,7 @@ const showGames = async (req, res, next) => {
         const games = await prisma.game.findMany({
             where: {
                 gameType: gameType,
+                isPrivate:false,
                 NOT: [
                     { createdById: id },
                     { invitedFriends: { some: { id: id } } }
@@ -155,7 +156,7 @@ const showGames = async (req, res, next) => {
         if (games.length > 0) {
             games.forEach((game) => {
                 if (game.startDate < now && game.endDate > now && !game.isEnded) {
-                    game.gameStatus = gameStatusConstants.ONGOING;  // Ongoing game
+                    game.gameStatus = gameStatusConstants.PRESENT;  // Ongoing game
                 } else if (game.startDate >= now) {
                     game.gameStatus = gameStatusConstants.FUTURE;   // Future game
                 }
@@ -240,7 +241,7 @@ const joinGame = async (req, res, next) => {
     try {
         const { id } = req.user;
         const { gameId } = req.params;
-        const { gameCode, userIds = [] } = req.body;
+        // const { gameCode, userIds = [] } = req.body;
 
         const finduser = await prisma.user.findUnique({
             where: {
@@ -254,7 +255,7 @@ const joinGame = async (req, res, next) => {
         const game = await prisma.game.findUnique({
             where: {
                 id: gameId,
-                gameCode: gameCode
+                // gameCode: gameCode
             },
             include: {
                 totalPlayers: true,

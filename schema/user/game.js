@@ -36,8 +36,8 @@ const userJoinGameSchema = Joi.object({
     gameId: Joi.string().required(),
   }),
   body: Joi.object({
-    gameCode: Joi.string().required(),
-    userIds: Joi.array().items(Joi.string()).optional()
+    // gameCode: Joi.string().required(),
+    // userIds: Joi.array().items(Joi.string()).optional()
   }),
 });
 
