@@ -14,7 +14,7 @@ const prisma = require("./config/prismaConfig");
 const cron = require('node-cron');
 
 const morgan = require('morgan');
-const { gameStatusConstants } = require('./constants/constants');
+const { gameStatusConstants, notificationConstants } = require('./constants/constants');
 
 
 require("dotenv").config();
@@ -124,6 +124,7 @@ cron.schedule('*/1 * * * *', async () => {
       await prisma.notification.create({
         data: {
           userId: winnerUser.id,
+          notificationType: notificationConstants.WINNING,
           title: `🎉 ${winnerUser.userName} won the game!`,
           description: `You won "${gameTitle}" with ${stepCount} steps!`,
         },

@@ -7,27 +7,32 @@ const showAllNotification = async (req, res, next) => {
   try {
 
     const { id } = req.user;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { notificationType } = req.query;
 
 
-    const notifications = await Promise.all([
-      prisma.notification.findMany({
-        where: { userId: id },
-        orderBy: { createdAt: "desc" },
-        include: { user: { select: { userName: true, image: true } } },
-        skip,
-        take: limit,
-      })
-    ])
+
+    // const notifications = await Promise.all([
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: id,
+        notificationType: notificationType,
+      },
+      include: {
+        user: {
+          select: {
+            userName: true,
+            image: true
+          }
+        }
+      }
+    })
 
     if (notifications.length === 0) {
       throw new NotFoundError("notifications not found")
     }
 
 
-    handlerOk(res, 200, ...notifications, 'notifications found successfully')
+    handlerOk(res, 200, notifications, 'notifications found successfully')
 
 
 

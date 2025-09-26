@@ -21,6 +21,10 @@ module.exports = {
     PASTGAME: "PASTGAME",
     FUTUREGAME: "FUTUREGAME",
   },
+  notificationConstants: {
+    WINNING: "WINNING",
+    INVITATION: "INVITATION",
+  },
 
 
 

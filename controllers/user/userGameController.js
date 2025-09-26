@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require("path");
 const uploadFileWithFolder = require("../../utils/s3Upload");
 const { gameStatus } = require("@prisma/client");
-const { gameStatusConstants } = require("../../constants/constants");
+const { gameStatusConstants, notificationConstants } = require("../../constants/constants");
 
 const userSearch = async (req, res, next) => {
     try {
@@ -97,9 +97,10 @@ const createGame = async (req, res, next) => {
             throw new ValidationError("game not create");
         }
 
-        if (privateGame && parsedInviteUsers.length > 0) {
+        if (privateGame || parsedInviteUsers.length > 0) {
             const notifications = parsedInviteUsers.map(userId => ({
                 userId: userId,
+                notificationType: notificationConstants.INVITATION,
                 title: "Game Invitation",
                 description: `${userName} invited you to join the game ${gameTitle}`,
             }));
