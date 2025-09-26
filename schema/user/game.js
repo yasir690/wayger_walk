@@ -18,15 +18,15 @@ const userCreateGameSchema = Joi.object({
     price: Joi.number().required(),
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
-    isReminder: Joi.string().optional(),
-    totalPlayers: Joi.number().required(),
-    totalSteps: Joi.number().required(),
+    isReminder: Joi.boolean().optional(),
+    totalPlayers: Joi.number().optional(),
+    totalSteps: Joi.number().optional(),
     gameType: Joi.string().required(),
     gamedescription: Joi.string().required(),
     gameTitle: Joi.string().required(),
-    gameCode: Joi.string().required(),
     gameDuration: Joi.string().required(),
     inviteUsers: Joi.array().items(Joi.string()).optional(),
+    isPrivate: Joi.boolean().optional()
   }),
 });
 
@@ -65,7 +65,7 @@ const userStepSchema = Joi.object({
 
 const userMyGameSchema = Joi.object({
   query: Joi.object({
-    gameType: Joi.string().valid('PRESENT', 'PAST','FUTURE').optional(),
+    gameType: Joi.string().valid('PRESENT', 'PAST', 'FUTURE').optional(),
   }),
   params: Joi.object({
   }),
