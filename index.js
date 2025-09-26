@@ -135,7 +135,7 @@ cron.schedule('*/1 * * * *', async () => {
         data: {
           isEnded: true,
           winnerId: winnerUser.id,
-          gameStatus: gameStatusConstants.PAST
+          gameStatus: gameStatusConstants.PASTGAME
         },
       });
 

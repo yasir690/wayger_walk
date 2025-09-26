@@ -2,24 +2,6 @@ const prisma = require("../../config/prismaConfig");
 const { NotFoundError, ValidationError } = require("../../resHandler/CustomError");
 const { handlerOk } = require("../../resHandler/responseHandler");
 
-// const createNotification = async (req, res, next) => {
-//   try {
-//     const { title, description } = req.body;
-//     const { id } = req.user;
-
-//     const createnoti = await prisma.notification.create({
-//       data: {
-//         title,
-//         description,
-//         userId: id,
-//       }
-//     });
-
-//     handlerOk(res, 200, createnoti, 'notification create')
-//   } catch (error) {
-//     next(error)
-//   }
-// }
 
 const showAllNotification = async (req, res, next) => {
   try {
@@ -115,9 +97,8 @@ const onAndOffNotification = async (req, res, next) => {
   }
 }
 
-module.exports={
-    showAllNotification,
-    readNotification,
-    onAndOffNotification,
-    // createNotification
+module.exports = {
+  showAllNotification,
+  readNotification,
+  onAndOffNotification,
 }

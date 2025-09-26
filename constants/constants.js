@@ -17,9 +17,9 @@ module.exports = {
     USER: "USER",
   },
   gameStatusConstants: {
-    PRESENT: "PRESENT",
-    PAST: "PAST",
-    FUTURE: "FUTURE",
+    ONGOINGAME: "ONGOINGAME",
+    PASTGAME: "PASTGAME",
+    FUTUREGAME: "FUTUREGAME",
   },
 
 

@@ -130,7 +130,7 @@ const showGames = async (req, res, next) => {
         const games = await prisma.game.findMany({
             where: {
                 gameType: gameType,
-                isPrivate:false,
+                isPrivate: false,
                 NOT: [
                     { createdById: id },
                     { invitedFriends: { some: { id: id } } }
@@ -156,9 +156,9 @@ const showGames = async (req, res, next) => {
         if (games.length > 0) {
             games.forEach((game) => {
                 if (game.startDate < now && game.endDate > now && !game.isEnded) {
-                    game.gameStatus = gameStatusConstants.PRESENT;  // Ongoing game
+                    game.gameStatus = gameStatusConstants.ONGOINGAME;  // Ongoing game
                 } else if (game.startDate >= now) {
-                    game.gameStatus = gameStatusConstants.FUTURE;   // Future game
+                    game.gameStatus = gameStatusConstants.FUTUREGAME;   // Future game
                 }
             });
         }
@@ -284,14 +284,6 @@ const joinGame = async (req, res, next) => {
             throw new ValidationError("You have already joined this game");
         }
 
-        // Restrict private TOURNAMENT access using userIds
-
-        // if (game.gameType === "TOURNAMENT" && game.isPrivate) {
-        //     if (!Array.isArray(userIds) || !userIds.includes(id)) {
-        //         throw new ValidationError("You are not allowed to join this private tournament");
-        //     }
-        // }
-
         // Double the game price if the number of players increases
         const updatedGamePrice = game.gamePrice * (currentPlayers.length + 1);
 
@@ -403,17 +395,6 @@ const saveUserStep = async (req, res, next) => {
     try {
         const { step, distance, sources, date } = req.body;
         const { id } = req.user;
-
-        // const savestep = await prisma.userStep.create({
-        //     data: {
-        //         steps: step,
-        //         distance: distance,
-        //         sources: sources,
-        //         date: date,
-        //         userId: id
-        //     },
-
-        // });
 
 
         const savestep = await prisma.userStep.upsert({

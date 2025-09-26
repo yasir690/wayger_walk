@@ -36,8 +36,7 @@ const userJoinGameSchema = Joi.object({
     gameId: Joi.string().required(),
   }),
   body: Joi.object({
-    // gameCode: Joi.string().required(),
-    // userIds: Joi.array().items(Joi.string()).optional()
+
   }),
 });
 
@@ -47,6 +46,7 @@ const userCoinPurchaseSchema = Joi.object({
     coinId: Joi.string().required(),
   }),
   body: Joi.object({
+
   }),
 });
 
