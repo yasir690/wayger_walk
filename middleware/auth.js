@@ -27,7 +27,7 @@ const verifyUserToken = async (req, res, next) => {
       },
     });
     if (!findUser) {
-      throw new NotFoundError("User Not Found");
+      throw new UnAuthorizedError("User Not Found");
     }
 
     req.user = findUser;

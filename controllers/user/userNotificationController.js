@@ -108,9 +108,19 @@ const rejectRequest=async (req,res,next) => {
   try {
     const {notificationId}=req.params;
 
-    const deletenotification=await prisma.notification.delete({
+     const findnotification=await prisma.notification.findUnique({
       where:{
         id:notificationId
+      }
+    });
+
+    if(!findnotification){
+      throw new NotFoundError("notification not found")
+    }
+
+    const deletenotification=await prisma.notification.delete({
+      where:{
+        id:findnotification.id
       }
     });
 

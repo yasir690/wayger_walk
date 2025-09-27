@@ -49,6 +49,24 @@ const createGame = async (req, res, next) => {
 
         console.log(req.body);
 
+
+         const finduser = await prisma.user.findUnique({
+            where: {
+                id: id
+            },
+            include: {
+                Coins: true
+            }
+        });
+
+        const userCoinsRecord = finduser.Coins?.[0];
+        const userCoins = userCoinsRecord?.coins || 0;
+
+        if (Number(price) > userCoins) {
+            throw new ConflictError("You do not have enough coins to play this game.")
+        }
+
+
         const otp = generateOtp();
 
         // ===== image OPTIONAL handling (Unchanged) =====
