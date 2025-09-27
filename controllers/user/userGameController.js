@@ -347,10 +347,10 @@ const joinGame = async (req, res, next) => {
         await prisma.coins.update({
             where:{
                 id:userCoinsRecord.id,
-                data:{
+            },
+              data:{
                     coins:newCoinBalance
                 }
-            }
         })
 
         await prisma.notification.delete({
