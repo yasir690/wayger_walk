@@ -353,7 +353,7 @@ const joinGame = async (req, res, next) => {
                 }
         })
 
-        await prisma.notification.delete({
+        await prisma.notification.deleteMany({
             where:{
                 gameId:gameId
             }
