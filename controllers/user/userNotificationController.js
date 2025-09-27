@@ -1,21 +1,17 @@
 const prisma = require("../../config/prismaConfig");
 const { NotFoundError, ValidationError } = require("../../resHandler/CustomError");
 const { handlerOk } = require("../../resHandler/responseHandler");
+const { message } = require("../../schema/user/content");
 
 
 const showAllNotification = async (req, res, next) => {
   try {
 
     const { id } = req.user;
-    const { notificationType } = req.query;
 
-
-
-    // const notifications = await Promise.all([
     const notifications = await prisma.notification.findMany({
       where: {
         userId: id,
-        notificationType: notificationType,
       },
       include: {
         user: {
@@ -23,12 +19,18 @@ const showAllNotification = async (req, res, next) => {
             userName: true,
             image: true
           }
-        }
+        },
+        game:true
       }
     })
 
     if (notifications.length === 0) {
-      throw new NotFoundError("notifications not found")
+      // throw new NotFoundError("notifications not found")
+      return res.status(200).json({
+        success:true,
+        message:"notification not found",
+        data:[]
+      })
     }
 
 
@@ -102,8 +104,29 @@ const onAndOffNotification = async (req, res, next) => {
   }
 }
 
+const rejectRequest=async (req,res,next) => {
+  try {
+    const {notificationId}=req.params;
+
+    const deletenotification=await prisma.notification.delete({
+      where:{
+        id:notificationId
+      }
+    });
+
+    if(!deletenotification){
+      throw new ValidationError("notification not delete")
+    }
+
+    handlerOk(res,200,null,"reject request successfully")
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   showAllNotification,
   readNotification,
   onAndOffNotification,
+  rejectRequest
 }

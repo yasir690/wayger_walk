@@ -69,6 +69,9 @@ cron.schedule('*/1 * * * *', async () => {
       return;
     }
 
+    console.log(endedGames,'endedGames');
+    
+
     console.log(`🔍 Found ${endedGames.length} ended game(s).`);
 
     for (const game of endedGames) {
@@ -124,9 +127,10 @@ cron.schedule('*/1 * * * *', async () => {
       await prisma.notification.create({
         data: {
           userId: winnerUser.id,
-          notificationType: notificationConstants.WINNING,
+          notificationType:notificationConstants.WINNING,
+          gameId:gameId,
           title: `🎉 ${winnerUser.userName} won the game!`,
-          description: `You won "${gameTitle}" with ${stepCount} steps!`,
+          description: `You won ${gameTitle} with ${stepCount} steps!`,
         },
       });
 

@@ -2,7 +2,7 @@ const limiter = require("../../middleware/limiter");
 const validateRequest = require("../../middleware/validateRequest");
 const userNotificationRouter = require("express").Router();
 const userNotificationController = require("../../controllers/user/userNotificationController");
-const { userNotificationReadSchema, userAllNotificationSchema } = require("../../schema/user/notification");
+const { userNotificationReadSchema, userAllNotificationSchema, userRejectNotificationSchema } = require("../../schema/user/notification");
 const { verifyUserToken } = require("../../middleware/auth");
 
 
@@ -35,6 +35,14 @@ userNotificationRouter.put(
   limiter,
   verifyUserToken,
   userNotificationController.onAndOffNotification
+);
+
+userNotificationRouter.delete(
+  "/rejectRequest/:notificationId",
+  limiter,
+  verifyUserToken,
+    validateRequest(userRejectNotificationSchema),
+  userNotificationController.rejectRequest
 );
 
 module.exports = userNotificationRouter;

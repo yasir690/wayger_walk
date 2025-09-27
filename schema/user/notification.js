@@ -14,7 +14,7 @@ const userAllNotificationSchema = Joi.object({
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
-    notificationType: Joi.string().valid("WINNING", "INVITATION").required()
+    // notificationType: Joi.string().valid("WINNING", "INVITATION").required()
   }),
   params: Joi.object({
   }),
@@ -22,7 +22,17 @@ const userAllNotificationSchema = Joi.object({
   }),
 });
 
+const userRejectNotificationSchema = Joi.object({
+  query: Joi.object({}),
+  params: Joi.object({
+    notificationId: Joi.string().required(),
+  }),
+  body: Joi.object({
+  }),
+});
+
 module.exports = {
   userNotificationReadSchema,
-  userAllNotificationSchema
+  userAllNotificationSchema,
+  userRejectNotificationSchema
 }

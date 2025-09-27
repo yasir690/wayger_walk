@@ -5,7 +5,7 @@ const { generateOtp } = require("../../utils/generateOtp");
 const { v4: uuidv4 } = require('uuid');
 const path = require("path");
 const uploadFileWithFolder = require("../../utils/s3Upload");
-const { gameStatus } = require("@prisma/client");
+const { gameStatus, notificationType } = require("@prisma/client");
 const { gameStatusConstants, notificationConstants } = require("../../constants/constants");
 
 const userSearch = async (req, res, next) => {
@@ -36,9 +36,10 @@ const userSearch = async (req, res, next) => {
     }
 }
 
+
 const createGame = async (req, res, next) => {
     try {
-        const { id, userName } = req.user;
+        const { id, userName } = req.user; // Creator's ID and Name
         const {
             price, startDate, endDate,
             gameType, gamedescription, gameTitle,
@@ -50,7 +51,7 @@ const createGame = async (req, res, next) => {
 
         const otp = generateOtp();
 
-        // ===== image OPTIONAL handling =====
+        // ===== image OPTIONAL handling (Unchanged) =====
         let s3ImageUrl; // undefined if no file
         if (file) {
             const fileBuffer = file.buffer;
@@ -63,6 +64,14 @@ const createGame = async (req, res, next) => {
 
         const privateGame = gameType === 'ONEONONE' ? true : isPrivate === 'true';
         const parsedInviteUsers = typeof inviteUsers === 'string' ? JSON.parse(inviteUsers) : inviteUsers;
+
+        // 🎯 STEP 1: Create a Set of all unique user IDs to be invited, including the creator.
+        const allInviteUserIds = new Set(parsedInviteUsers);
+        allInviteUserIds.add(id); // Add creator's ID
+
+        // Convert the set back to an array for Prisma connect operation
+        const inviteConnectData = Array.from(allInviteUserIds).map(userId => ({ id: userId }));
+
 
         const game = await prisma.game.create({
             data: {
@@ -77,11 +86,13 @@ const createGame = async (req, res, next) => {
                 // only add image if present
                 ...(s3ImageUrl && { image: s3ImageUrl }),
                 isPrivate: gameType === 'ONEONONE' ? true : isPrivate === 'true',
+                // Creator is already in totalPlayers (correct)
                 totalPlayers: {
                     connect: [{ id }],
                 },
+                // 🎯 STEP 2: Use the full list including the creator here
                 invitedFriends: {
-                    connect: parsedInviteUsers.map(userid => ({ id: userid }))
+                    connect: inviteConnectData
                 },
                 ...(typeof isReminder !== 'undefined' && {
                     isReminder: isReminder === 'true',
@@ -97,18 +108,24 @@ const createGame = async (req, res, next) => {
             throw new ValidationError("game not create");
         }
 
+        // 🎯 STEP 3: Send notifications ONLY to external invited users
         if (privateGame || parsedInviteUsers.length > 0) {
-            const notifications = parsedInviteUsers.map(userId => ({
-                userId: userId,
-                notificationType: notificationConstants.INVITATION,
-                title: "Game Invitation",
-                description: `${userName} invited you to join the game ${gameTitle}`,
-            }));
+            const externalInviteUserIds = parsedInviteUsers.filter(userId => userId !== id);
 
-            await prisma.notification.createMany({
-                data: notifications,
-                skipDuplicates: true,
-            });
+            if (externalInviteUserIds.length > 0) {
+                const notifications = externalInviteUserIds.map(userId => ({
+                    userId: userId,
+                    notificationType: notificationConstants.INVITATION,
+                    gameId:game.id,
+                    title: "Game Invitation",
+                    description: `${userName} invited you to join the game ${gameTitle}`,
+                }));
+
+                await prisma.notification.createMany({
+                    data: notifications,
+                    skipDuplicates: true,
+                });
+            }
         }
 
         handlerOk(res, 201, game, "game created successfully")
@@ -242,7 +259,6 @@ const joinGame = async (req, res, next) => {
     try {
         const { id } = req.user;
         const { gameId } = req.params;
-        // const { gameCode, userIds = [] } = req.body;
 
         const finduser = await prisma.user.findUnique({
             where: {
@@ -256,7 +272,6 @@ const joinGame = async (req, res, next) => {
         const game = await prisma.game.findUnique({
             where: {
                 id: gameId,
-                // gameCode: gameCode
             },
             include: {
                 totalPlayers: true,
@@ -267,7 +282,10 @@ const joinGame = async (req, res, next) => {
             throw new NotFoundError("game or game code not found");
         }
 
-        if (game.gamePrice >= finduser.Coins[0]?.coins) {
+        const userCoinsRecord = finduser.Coins?.[0];
+        const userCoins = userCoinsRecord?.coins || 0;
+
+        if (game.gamePrice > userCoins) {
             throw new ConflictError("You do not have enough coins to play this game.")
         }
 
@@ -288,6 +306,7 @@ const joinGame = async (req, res, next) => {
         // Double the game price if the number of players increases
         const updatedGamePrice = game.gamePrice * (currentPlayers.length + 1);
 
+ 
 
 
         const updatedGame = await prisma.game.update({
@@ -303,6 +322,23 @@ const joinGame = async (req, res, next) => {
             include: {
                 totalPlayers: true,
             },
+        })
+
+        const newCoinBalance = userCoins - game.gamePrice;
+
+        await prisma.coins.update({
+            where:{
+                id:userCoinsRecord.id,
+                data:{
+                    coins:newCoinBalance
+                }
+            }
+        })
+
+        await prisma.notification.delete({
+            where:{
+                gameId:gameId
+            }
         })
 
 

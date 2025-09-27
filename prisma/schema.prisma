@@ -153,11 +153,13 @@ model Coins {
 model Notification {
   id            String      @id @default(uuid())
   userId        String
-  notificationType  notificationType?
+  notificationType  notificationType
   user          User     @relation(fields: [userId], references: [id])
   title        String
   description  String
   isRead       Boolean   @default(false)
+  gameId            String?
+  game              Game?             @relation(fields: [gameId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -227,6 +229,8 @@ model Game {
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @updatedAt
+
+  Notification Notification[]
 }
 
 model CoinPlan {
