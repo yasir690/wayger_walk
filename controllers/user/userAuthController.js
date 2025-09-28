@@ -588,8 +588,19 @@ const userDeleteAccount = async (req, res, next) => {
     const { id } = req.user;
 
     await prisma.$transaction([
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      prisma.feedBack.deleteMany({ where: { userId: id } }),
+      prisma.coins.deleteMany({ where: { userId: id } }),
+      prisma.coinPurchase.deleteMany({ where: { userId: id } }),
+      prisma.userStep.deleteMany({ where: { userId: id } }),
       prisma.wallet.deleteMany({ where: { userId: id } }),
-      prisma.user.delete({ where: { id: id } }),
+
+      prisma.game.deleteMany({ where: { creatorId: id } }),
+      prisma.game.updateMany({ where: { winnerId: id }, data: { winnerId: null } }),
+      prisma.game.updateMany({ where: { players: { some: { id } } }, data: { players: { disconnect: { id } } } }),
+      prisma.game.updateMany({ where: { invitedPlayers: { some: { id } } }, data: { invitedPlayers: { disconnect: { id } } } }),
+
+      prisma.user.delete({ where: { id } }),
     ]);
 
     handlerOk(res, 200, null, "User account deleted successfully");
