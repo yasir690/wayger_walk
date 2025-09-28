@@ -587,21 +587,45 @@ const userDeleteAccount = async (req, res, next) => {
   try {
     const { id } = req.user;
 
+   // Step 1: Disconnect user from games first (manual loop required)
+    const gamesWithUser = await prisma.game.findMany({
+      where: {
+        OR: [
+          { totalPlayers: { some: { id } } },
+          { invitedFriends: { some: { id } } }
+        ]
+      },
+      select: { id: true }
+    });
+
+    for (const game of gamesWithUser) {
+      await prisma.game.update({
+        where: { id: game.id },
+        data: {
+          totalPlayers: { disconnect: { id } },
+          invitedFriends: { disconnect: { id } },
+        }
+      });
+    }
+
+    // Step 2: Delete all in one transaction
     await prisma.$transaction([
       prisma.notification.deleteMany({ where: { userId: id } }),
-      prisma.feedBack.deleteMany({ where: { userId: id } }),
+      prisma.feedBack.deleteMany({ where: { createdById: id } }),
       prisma.coins.deleteMany({ where: { userId: id } }),
       prisma.coinPurchase.deleteMany({ where: { userId: id } }),
       prisma.userStep.deleteMany({ where: { userId: id } }),
       prisma.wallet.deleteMany({ where: { userId: id } }),
 
-      prisma.game.deleteMany({ where: { creatorId: id } }),
-      prisma.game.updateMany({ where: { winnerId: id }, data: { winnerId: null } }),
-      prisma.game.updateMany({ where: { players: { some: { id } } }, data: { players: { disconnect: { id } } } }),
-      prisma.game.updateMany({ where: { invitedPlayers: { some: { id } } }, data: { invitedPlayers: { disconnect: { id } } } }),
+      prisma.game.deleteMany({ where: { createdById: id } }),
+      prisma.game.updateMany({
+        where: { winnerId: id },
+        data: { winnerId: null },
+      }),
 
       prisma.user.delete({ where: { id } }),
     ]);
+
 
     handlerOk(res, 200, null, "User account deleted successfully");
   } catch (error) {
