@@ -54,12 +54,17 @@ const userStepSchema = Joi.object({
   query: Joi.object({}),
   params: Joi.object({
   }),
-  body: Joi.object({
-    step: Joi.number().required(),
-    distance: Joi.number().required(),
-    sources: Joi.array().items(Joi.string()).required(),
-    date: Joi.date().required()
-  }),
+  body: Joi.array()
+    .items(
+      Joi.object({
+        step: Joi.number().required(),
+        distance: Joi.number().required(),
+        sources: Joi.array().items(Joi.string()).required(),
+        date: Joi.date().required()
+      })
+    )
+    .min(1) // ensure at least one record
+    .required(),
 });
 
 

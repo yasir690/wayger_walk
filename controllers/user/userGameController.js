@@ -153,114 +153,114 @@ const userSearch = async (req, res, next) => {
 // }
 
 const createGame = async (req, res, next) => {
-  try {
-    const { id, userName } = req.user; // Creator's ID and Name
-    const {
-      price, startDate, endDate,
-      gameType, gamedescription, gameTitle,
-      isReminder, isPrivate, inviteUsers = '[]'
-    } = req.body;
+    try {
+        const { id, userName } = req.user; // Creator's ID and Name
+        const {
+            price, startDate, endDate,
+            gameType, gamedescription, gameTitle,
+            isReminder, isPrivate, inviteUsers = '[]'
+        } = req.body;
 
-    const file = req.file;
+        const file = req.file;
 
-    // Fetch user and their coins
-    const finduser = await prisma.user.findUnique({
-      where: { id },
-      include: { Coins: true },
-    });
+        // Fetch user and their coins
+        const finduser = await prisma.user.findUnique({
+            where: { id },
+            include: { Coins: true },
+        });
 
-    const userCoinsRecord = finduser?.Coins?.[0];
-    const userCoins = userCoinsRecord?.coins || 0;
+        const userCoinsRecord = finduser?.Coins?.[0];
+        const userCoins = userCoinsRecord?.coins || 0;
 
-    if (Number(price) > userCoins) {
-      throw new ConflictError("You do not have enough coins to play this game.");
+        if (Number(price) > userCoins) {
+            throw new ConflictError("You do not have enough coins to play this game.");
+        }
+
+        const otp = generateOtp();
+
+        // ===== Handle optional image upload =====
+        let s3ImageUrl;
+        if (file) {
+            const fileBuffer = file.buffer;
+            const folder = 'uploads';
+            const filename = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
+            const contentType = file.mimetype || 'application/octet-stream';
+            s3ImageUrl = await uploadFileWithFolder(fileBuffer, filename, contentType, folder);
+        }
+
+        const privateGame = gameType === 'ONEONONE' ? true : isPrivate === 'true';
+        const parsedInviteUsers = typeof inviteUsers === 'string' ? JSON.parse(inviteUsers) : inviteUsers;
+
+        // 🎯 STEP 1: Build Set of unique invite IDs including creator
+        const allInviteUserIds = new Set(parsedInviteUsers);
+        allInviteUserIds.add(id); // Always add creator
+
+        // 🎯 STEP 2: Validate that all user IDs exist
+        const existingUsers = await prisma.user.findMany({
+            where: { id: { in: Array.from(allInviteUserIds) } },
+            select: { id: true },
+        });
+
+        const existingUserIds = new Set(existingUsers.map(user => user.id));
+        const invalidUserIds = Array.from(allInviteUserIds).filter(userId => !existingUserIds.has(userId));
+
+        if (invalidUserIds.length > 0) {
+            throw new ValidationError(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
+        }
+
+        const inviteConnectData = Array.from(existingUserIds).map(userId => ({ id: userId }));
+
+        // 🎯 STEP 3: Create the game
+        const game = await prisma.game.create({
+            data: {
+                createdById: id,
+                gamePrice: Number(price),
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                gameType,
+                gameDescription: gamedescription,
+                gameTitle,
+                gameCode: otp,
+                ...(s3ImageUrl && { image: s3ImageUrl }),
+                isPrivate: privateGame,
+                totalPlayers: { connect: [{ id }] },
+                invitedFriends: { connect: inviteConnectData },
+                ...(typeof isReminder !== 'undefined' && {
+                    isReminder: isReminder === 'true',
+                }),
+            },
+            include: {
+                totalPlayers: true,
+                invitedFriends: true,
+            },
+        });
+
+        if (!game) {
+            throw new ValidationError("Game creation failed.");
+        }
+
+        // 🎯 STEP 4: Send invitations (notifications) to external users
+        const externalInviteUserIds = parsedInviteUsers.filter(userId => userId !== id && existingUserIds.has(userId));
+
+        if (externalInviteUserIds.length > 0) {
+            const notifications = externalInviteUserIds.map(userId => ({
+                userId,
+                notificationType: notificationConstants.INVITATION,
+                gameId: game.id,
+                title: "Game Invitation",
+                description: `${userName} invited you to join the game "${gameTitle}"`,
+            }));
+
+            await prisma.notification.createMany({
+                data: notifications,
+                skipDuplicates: true,
+            });
+        }
+
+        handlerOk(res, 201, game, "Game created successfully");
+    } catch (error) {
+        next(error);
     }
-
-    const otp = generateOtp();
-
-    // ===== Handle optional image upload =====
-    let s3ImageUrl;
-    if (file) {
-      const fileBuffer = file.buffer;
-      const folder = 'uploads';
-      const filename = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
-      const contentType = file.mimetype || 'application/octet-stream';
-      s3ImageUrl = await uploadFileWithFolder(fileBuffer, filename, contentType, folder);
-    }
-
-    const privateGame = gameType === 'ONEONONE' ? true : isPrivate === 'true';
-    const parsedInviteUsers = typeof inviteUsers === 'string' ? JSON.parse(inviteUsers) : inviteUsers;
-
-    // 🎯 STEP 1: Build Set of unique invite IDs including creator
-    const allInviteUserIds = new Set(parsedInviteUsers);
-    allInviteUserIds.add(id); // Always add creator
-
-    // 🎯 STEP 2: Validate that all user IDs exist
-    const existingUsers = await prisma.user.findMany({
-      where: { id: { in: Array.from(allInviteUserIds) } },
-      select: { id: true },
-    });
-
-    const existingUserIds = new Set(existingUsers.map(user => user.id));
-    const invalidUserIds = Array.from(allInviteUserIds).filter(userId => !existingUserIds.has(userId));
-
-    if (invalidUserIds.length > 0) {
-      throw new ValidationError(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
-    }
-
-    const inviteConnectData = Array.from(existingUserIds).map(userId => ({ id: userId }));
-
-    // 🎯 STEP 3: Create the game
-    const game = await prisma.game.create({
-      data: {
-        createdById: id,
-        gamePrice: Number(price),
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        gameType,
-        gameDescription: gamedescription,
-        gameTitle,
-        gameCode: otp,
-        ...(s3ImageUrl && { image: s3ImageUrl }),
-        isPrivate: privateGame,
-        totalPlayers: { connect: [{ id }] },
-        invitedFriends: { connect: inviteConnectData },
-        ...(typeof isReminder !== 'undefined' && {
-          isReminder: isReminder === 'true',
-        }),
-      },
-      include: {
-        totalPlayers: true,
-        invitedFriends: true,
-      },
-    });
-
-    if (!game) {
-      throw new ValidationError("Game creation failed.");
-    }
-
-    // 🎯 STEP 4: Send invitations (notifications) to external users
-    const externalInviteUserIds = parsedInviteUsers.filter(userId => userId !== id && existingUserIds.has(userId));
-
-    if (externalInviteUserIds.length > 0) {
-      const notifications = externalInviteUserIds.map(userId => ({
-        userId,
-        notificationType: notificationConstants.INVITATION,
-        gameId: game.id,
-        title: "Game Invitation",
-        description: `${userName} invited you to join the game "${gameTitle}"`,
-      }));
-
-      await prisma.notification.createMany({
-        data: notifications,
-        skipDuplicates: true,
-      });
-    }
-
-    handlerOk(res, 201, game, "Game created successfully");
-  } catch (error) {
-    next(error);
-  }
 };
 
 
@@ -436,7 +436,7 @@ const joinGame = async (req, res, next) => {
         // Double the game price if the number of players increases
         const updatedGamePrice = game.gamePrice * (currentPlayers.length + 1);
 
- 
+
 
 
         const updatedGame = await prisma.game.update({
@@ -457,17 +457,17 @@ const joinGame = async (req, res, next) => {
         const newCoinBalance = userCoins - game.gamePrice;
 
         await prisma.coins.update({
-            where:{
-                id:userCoinsRecord.id,
+            where: {
+                id: userCoinsRecord.id,
             },
-              data:{
-                    coins:newCoinBalance
-                }
+            data: {
+                coins: newCoinBalance
+            }
         })
 
         await prisma.notification.deleteMany({
-            where:{
-                gameId:gameId
+            where: {
+                gameId: gameId
             }
         })
 
@@ -560,36 +560,54 @@ const coinPurchase = async (req, res, next) => {
 
 const saveUserStep = async (req, res, next) => {
     try {
-        const { step, distance, sources, date } = req.body;
+        const stepsList = req.body;
         const { id } = req.user;
 
+        if (!Array.isArray(stepsList) || stepsList.length === 0) {
+            throw new ValidationError("body must be a non-empty array of step objects");
+        }
 
-        const savestep = await prisma.userStep.upsert({
-            where: {
-                userId_date: {
-                    userId: id,
-                    date: new Date(date), // Ensure date format matches the DB
+        const ops = stepsList.map((item) => {
+
+            const step = Number(item.step);
+            const distance = Number(item.distance);
+            const sources = Array.isArray(item.sources) ? item.sources.map(String) : [];
+            const dateObj = new Date(item.date); // cast to Date
+
+            console.log(dateObj);
+
+
+            return prisma.userStep.upsert({
+                where: {
+                    userId_date: {
+                        userId: id,
+                        date: dateObj
+                    },
                 },
-            },
-            update: {
-                steps: step,
-                distance: distance,
-                sources: sources,
-            },
-            create: {
-                steps: step,
-                distance: distance,
-                sources: sources,
-                date: new Date(date),
-                userId: id,
-            },
+                update: {
+                    steps: step,
+                    distance: distance,
+                    sources: sources,
+                },
+                create: {
+                    steps: step,
+                    distance: distance,
+                    sources: sources,
+                    date: dateObj,
+                    userId: id,
+                },
+            });
         });
 
-        if (!savestep) {
+        // Atomic write: all or nothing
+        const saved = await prisma.$transaction(ops);
+
+        if (!saved) {
             throw new ValidationError("step not save")
         }
 
-        handlerOk(res, 200, savestep, "step save successfully");
+        handlerOk(res, 200, saved, "step save successfully");
+
     } catch (error) {
         next(error)
     }
