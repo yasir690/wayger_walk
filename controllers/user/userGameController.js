@@ -223,57 +223,72 @@ const showGames = async (req, res, next) => {
     }
 }
 
+
 const myGames = async (req, res, next) => {
     try {
         const { id } = req.user;
         const { gameType } = req.query;
-        const now = new Date();
+        const now = new Date(); // UTC
 
         console.log(now);
+
 
         const baseCondition = {
             OR: [
                 { createdById: id },
-                { invitedFriends: { some: { id } } },
+                { invitedFriends: { some: { id: id } } }, // be explicit on the key
             ],
         };
 
-        // Additional time-based filter
-        let timeCondition = {};
-        if (gameType === "PRESENT") {
-            timeCondition = {
-                startDate: { lte: now },
-                endDate: { gte: now },
-            };
-        } else if (gameType === "PAST") {
-            timeCondition = {
-                endDate: { lt: now },
-            };
-        } else if (gameType === "FUTURE") {
-            timeCondition = {
-                startDate: { gt: now },
-            };
+        // Keep Prisma filters simple & valid. We'll finish the nuanced logic in JS.
+        let where = { AND: [baseCondition] };
+
+        if (gameType === 'PRESENT') {
+            // Minimal prefilter: only games that have started (or start now)
+            where = { AND: [baseCondition, { startDate: { lte: now } }] };
+        } else if (gameType === 'PAST') {
+            // Minimal prefilter: games with any endDate set before now
+            // (Overnight edge cases are finalized in JS below)
+            where = { AND: [baseCondition, { endDate: { lt: now } }] };
+        } else if (gameType === 'FUTURE') {
+            where = { AND: [baseCondition, { startDate: { gt: now } }] };
         }
 
-        const games = await prisma.game.findMany({
-            where: {
-                AND: [
-                    baseCondition,
-                    timeCondition,
-                ],
-            },
-            include: {
-                invitedFriends: true,
-                // totalPlayers: true, // uncomment if needed
-            },
+        const candidates = await prisma.game.findMany({
+            where,
+            include: { invitedFriends: true },
             orderBy: { startDate: 'asc' },
+        });
+
+        // Normalize/classify in JS (handles "overnight" where end < start).
+        const games = candidates.filter(g => {
+            const start = new Date(g.startDate);
+            const endRaw = g.endDate ? new Date(g.endDate) : null;
+
+            // If end < start, treat as crossing midnight -> end = end + 1 day
+            const end = endRaw && endRaw < start
+                ? new Date(endRaw.getTime() + 24 * 60 * 60 * 1000)
+                : endRaw;
+
+            if (gameType === 'PRESENT') {
+                // running now: start <= now <= end (or open-ended if end null)
+                return start <= now && (end ? now <= end : true);
+            }
+            if (gameType === 'PAST') {
+                // finished strictly before now (open-ended games can't be "past")
+                return end ? end < now : false;
+            }
+            if (gameType === 'FUTURE') {
+                return start > now;
+            }
+            return true; // if no gameType, return all candidates
         });
 
         if (games.length === 0) {
             return handlerOk(res, 200, null, "no game found");
         }
-
         return handlerOk(res, 200, games, "games found successfully");
+
 
     } catch (error) {
         next(error);
