@@ -142,6 +142,17 @@ const createGame = async (req, res, next) => {
             });
         }
 
+        const newCoinBalance = userCoins - game.gamePrice;
+
+        await prisma.coins.update({
+            where: {
+                id: userCoinsRecord.id,
+            },
+            data: {
+                coins: newCoinBalance
+            }
+        })
+
         handlerOk(res, 201, game, "Game created successfully");
     } catch (error) {
         next(error);
