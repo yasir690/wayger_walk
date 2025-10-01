@@ -340,14 +340,14 @@ const joinGame = async (req, res, next) => {
             throw new ValidationError("This one-on-one game is already full");
         }
 
-        if (currentPlayers.includes(id)) {
+
+        const alreadyJoined = currentPlayers.some(u => u.id === id);
+        if (alreadyJoined) {
             throw new ValidationError("You have already joined this game");
         }
 
         // Double the game price if the number of players increases
         const updatedGamePrice = game.gamePrice * (currentPlayers.length + 1);
-
-
 
 
         const updatedGame = await prisma.game.update({
@@ -359,9 +359,12 @@ const joinGame = async (req, res, next) => {
                     connect: { id },
                 },
                 currentPrice: updatedGamePrice,
+                invitedFriends: {
+                    connect: { id }
+                }
             },
             include: {
-                totalPlayers: true,
+                invitedFriends: true
             },
         })
 
