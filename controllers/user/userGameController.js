@@ -541,20 +541,93 @@ const showGames = async (req, res, next) => {
 //     }
 // }
 
+// const myGames = async (req, res, next) => {
+//   try {
+//     const { id } = req.user;
+//     const { gameType } = req.query;
+//     const now = new Date();
+
+//     // Base condition:
+//     // User is either the creator OR
+//     // user has an ACCEPTED status in the GamePlayerStatus table
+//     const baseCondition = {
+//       OR: [
+//         { createdById: id },
+//         {
+//           playerStatuses: {
+//             some: {
+//               userId: id,
+//               status: 'ACCEPTED',
+//             },
+//           },
+//         },
+//       ],
+//     };
+
+//     // Prisma filters by gameType + base condition
+//     let where = { AND: [baseCondition] };
+
+//     if (gameType === 'PRESENT') {
+//       where = { AND: [baseCondition, { startDate: { lte: now } }] };
+//     } else if (gameType === 'PAST') {
+//       where = { AND: [baseCondition, { endDate: { lt: now } }] };
+//     } else if (gameType === 'FUTURE') {
+//       where = { AND: [baseCondition, { startDate: { gt: now } }] };
+//     }
+
+//     const candidates = await prisma.game.findMany({
+//       where,
+//       include: {
+//         invitedFriends: true,
+//         playerStatuses: true, // include to check statuses if needed
+//       },
+//       orderBy: { startDate: 'asc' },
+//     });
+
+//     // Post-filter logic (handle overnight cross-midnight, etc)
+//     const games = candidates.filter(g => {
+//       const start = new Date(g.startDate);
+//       const endRaw = g.endDate ? new Date(g.endDate) : null;
+
+//       const end = endRaw && endRaw < start
+//         ? new Date(endRaw.getTime() + 24 * 60 * 60 * 1000)
+//         : endRaw;
+
+//       if (gameType === 'PRESENT') {
+//         return start <= now && (end ? now <= end : true);
+//       }
+//       if (gameType === 'PAST') {
+//         return end ? end < now : false;
+//       }
+//       if (gameType === 'FUTURE') {
+//         return start > now;
+//       }
+//       return true;
+//     });
+
+//     if (games.length === 0) {
+//       return handlerOk(res, 200, null, "no game found");
+//     }
+
+//     return handlerOk(res, 200, games, "games found successfully");
+
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const myGames = async (req, res, next) => {
   try {
     const { id } = req.user;
     const { gameType } = req.query;
     const now = new Date();
 
-    // Base condition:
-    // User is either the creator OR
-    // user has an ACCEPTED status in the GamePlayerStatus table
+    // Base condition: creator OR has ACCEPTED GamePlayerStatus
     const baseCondition = {
       OR: [
         { createdById: id },
         {
-          playerStatuses: {
+          GamePlayerStatus: {
             some: {
               userId: id,
               status: 'ACCEPTED',
@@ -564,7 +637,7 @@ const myGames = async (req, res, next) => {
       ],
     };
 
-    // Prisma filters by gameType + base condition
+    // Apply gameType filters
     let where = { AND: [baseCondition] };
 
     if (gameType === 'PRESENT') {
@@ -579,12 +652,14 @@ const myGames = async (req, res, next) => {
       where,
       include: {
         invitedFriends: true,
-        playerStatuses: true, // include to check statuses if needed
+        GamePlayerStatus: {
+          include: { user: true },
+        },
       },
       orderBy: { startDate: 'asc' },
     });
 
-    // Post-filter logic (handle overnight cross-midnight, etc)
+    // JS-side classification (handles overnight dates)
     const games = candidates.filter(g => {
       const start = new Date(g.startDate);
       const endRaw = g.endDate ? new Date(g.endDate) : null;
