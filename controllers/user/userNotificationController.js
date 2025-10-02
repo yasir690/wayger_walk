@@ -18,7 +18,7 @@ const showAllNotification = async (req, res, next) => {
           select: {
             userName: true,
             image: true
-          }
+          },
         },
         // game:true
         game:{
