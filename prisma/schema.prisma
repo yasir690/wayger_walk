@@ -46,7 +46,11 @@ enum gameStatus {
   FUTUREGAME
 }
 
-
+enum PlayerStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
 
 
 model Admin {
@@ -103,6 +107,8 @@ model User {
   joinedGames            Game[]   @relation("GamePlayers")          // games user joined
   invitedGames           Game[]   @relation("InvitePlayers")        // games user invited to
   wonGames               Game[]   @relation("GameWinner")           // games user won (new relation)
+
+  GamePlayerStatus GamePlayerStatus[]
 }
 
 
@@ -231,6 +237,8 @@ model Game {
   updatedAt        DateTime? @updatedAt
 
   Notification Notification[]
+
+  GamePlayerStatus GamePlayerStatus[]
 }
 
 model CoinPlan {
@@ -270,4 +278,19 @@ model UserStep{
     user        User     @relation(fields: [userId], references: [id])
     @@unique([userId, date]) 
 
+}
+
+model GamePlayerStatus {
+  id        String       @id @default(uuid())
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+
+  game      Game         @relation(fields: [gameId], references: [id])
+  gameId    String
+
+  status    PlayerStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([userId, gameId]) // Prevent duplicate entries for the same game/user
 }
