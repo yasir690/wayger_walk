@@ -249,12 +249,12 @@ const createGame = async (req, res, next) => {
                 invitedFriends: {
                     connect: inviteConnectData
                 },
-                playerStatuses: {
+                GamePlayerStatus: {
                     create: gamePlayerStatuses
                 }
             },
             include: {
-                playerStatuses: {
+                GamePlayerStatus: {
                     include: {
                         user: true
                     }
