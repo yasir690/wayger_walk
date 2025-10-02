@@ -622,6 +622,9 @@ const myGames = async (req, res, next) => {
     const { gameType } = req.query;
     const now = new Date();
 
+    console.log(now);
+    console.log();
+    
     // Base condition: creator OR has ACCEPTED GamePlayerStatus
     const baseCondition = {
       OR: [
@@ -659,6 +662,8 @@ const myGames = async (req, res, next) => {
       orderBy: { startDate: 'asc' },
     });
 
+    console.log(candidates);
+    
     // JS-side classification (handles overnight dates)
     const games = candidates.filter(g => {
       const start = new Date(g.startDate);
