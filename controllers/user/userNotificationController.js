@@ -20,7 +20,12 @@ const showAllNotification = async (req, res, next) => {
             image: true
           }
         },
-        game:true
+        // game:true
+        game:{
+          include:{
+            invitedFriends:true
+          }
+        }
       }
     })
 
