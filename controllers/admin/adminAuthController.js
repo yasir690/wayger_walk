@@ -1,6 +1,6 @@
 const prisma = require("../../config/prismaConfig");
 const { userConstants } = require("../../constants/constants");
-const {  NotFoundError, BadRequestError, ValidationError } = require("../../resHandler/CustomError");
+const { NotFoundError, BadRequestError, ValidationError } = require("../../resHandler/CustomError");
 const { handlerOk } = require("../../resHandler/responseHandler");
 const { genToken } = require("../../utils/generateToken");
 const { comparePassword } = require("../../utils/passwordHashed");
@@ -15,6 +15,9 @@ const adminLogin = async (req, res, next) => {
     const findadmin = await prisma.admin.findUnique({
       where: {
         email: email
+      },
+      include: {
+        AdminWallet: true
       }
     });
 
@@ -86,6 +89,8 @@ const editImage = async (req, res, next) => {
     next(error)
   }
 }
+
+
 
 
 

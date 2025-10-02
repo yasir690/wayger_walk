@@ -71,6 +71,8 @@ model Admin {
   AboutApp AboutApp[]
 
   CoinPlan CoinPlan[]
+
+  AdminWallet AdminWallet[]
 }
 
 model User {
@@ -146,6 +148,29 @@ model WalletTransaction {
   createdAt   DateTime        @default(now())
   wallet      Wallet          @relation(fields: [walletId], references: [id])
 }
+
+model AdminWallet {
+  id            String                 @id @default(uuid())
+  adminId        String                @unique
+  balance       Float              @default(0.0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  admin          Admin               @relation(fields: [adminId], references: [id])
+  transactions  AdminWalletTransaction[]
+}
+
+model AdminWalletTransaction {
+  id          String             @id @default(uuid())
+  walletId    String
+  amount      Float           // Negative for debits, positive for credits
+  description String?
+  gameId      String? 
+  createdAt   DateTime        @default(now())
+  wallet      AdminWallet          @relation(fields: [walletId], references: [id])
+   game        Game?       @relation(fields: [gameId], references: [id])
+}
+
 
 model Coins {
   id            String                 @id @default(uuid())
@@ -239,6 +264,8 @@ model Game {
   Notification Notification[]
 
   GamePlayerStatus GamePlayerStatus[]
+
+  AdminWalletTransaction AdminWalletTransaction[]
 }
 
 model CoinPlan {

@@ -90,6 +90,18 @@ const userShowGameSchema = Joi.object({
   }),
 });
 
+const userWinningDetailsSchema = Joi.object({
+  query: Joi.object({
+  }),
+  params: Joi.object({
+    gameId: Joi.string().required(),
+
+  }),
+  body: Joi.object({
+
+  }),
+});
+
 module.exports = {
   userCreateGameSchema,
   userJoinGameSchema,
@@ -97,5 +109,6 @@ module.exports = {
   userCoinPurchaseSchema,
   userStepSchema,
   userMyGameSchema,
-  userShowGameSchema
+  userShowGameSchema,
+  userWinningDetailsSchema
 };
