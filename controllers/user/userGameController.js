@@ -707,7 +707,7 @@ const joinGame = async (req, res, next) => {
     const game = await prisma.game.findUnique({
       where: { id: gameId },
       include: {
-        playerStatuses: true,
+        GamePlayerStatus: true,
         totalPlayers: true,
       },
     });
@@ -728,14 +728,14 @@ const joinGame = async (req, res, next) => {
     }
 
     // Check if user already has a status for this game
-    const existingStatus = game.playerStatuses.find(ps => ps.userId === id);
+    const existingStatus = game.GamePlayerStatus.find(ps => ps.userId === id);
 
     if (existingStatus && existingStatus.status === 'ACCEPTED') {
       throw new ValidationError("You have already joined this game");
     }
 
     // Check ONEONONE max players = 2 and accepted players count
-    const acceptedPlayers = game.playerStatuses.filter(ps => ps.status === 'ACCEPTED');
+    const acceptedPlayers = game.GamePlayerStatus.filter(ps => ps.status === 'ACCEPTED');
     if (game.gameType === "ONEONONE" && acceptedPlayers.length >= 2) {
       throw new ValidationError("This one-on-one game is already full");
     }
