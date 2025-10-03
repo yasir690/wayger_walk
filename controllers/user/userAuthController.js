@@ -588,7 +588,7 @@ const userDeleteAccount = async (req, res, next) => {
     const { id: userId } = req.user;
 
     await prisma.$transaction(async (tx) => {
-      // 0) Detach user from games where they are participant/invitee (not necessarily creator)
+      // A) Detach from many-to-many relations (joined/invited)
       const gamesWithUser = await tx.game.findMany({
         where: {
           OR: [
@@ -609,58 +609,60 @@ const userDeleteAccount = async (req, res, next) => {
         });
       }
 
-      // 1) Null-out winner where this user is the winner (in any game)
+      // B) If this user is a winner anywhere, null it
       await tx.game.updateMany({
         where: { winnerId: userId },
         data: { winnerId: null }
       });
 
-      // 2) Collect games CREATED by this user (these will be deleted)
-      const createdGames = await tx.game.findMany({
-        where: { createdById: userId },
-        select: { id: true }
-      });
-      const createdGameIds = createdGames.map(g => g.id);
+      // C) Delete dependents of games CREATED by this user, then delete those games
+      const createdGameIds = (
+        await tx.game.findMany({ where: { createdById: userId }, select: { id: true } })
+      ).map(g => g.id);
 
       if (createdGameIds.length) {
-        // 2a) Delete/clear dependents that hold FK -> Game
-        // If you prefer to keep notifications, set gameId null instead of delete.
         await tx.notification.updateMany({
           where: { gameId: { in: createdGameIds } },
           data: { gameId: null }
         });
 
-        // If you want to remove those notifications entirely, use deleteMany instead of updateMany above.
-
-        // AdminWalletTransaction -> Game (hard delete is typical)
         await tx.adminWalletTransaction.deleteMany({
           where: { gameId: { in: createdGameIds } }
         });
 
-        // GamePlayerStatus -> Game (if this model exists in your schema)
-        // Rename to the exact model name/casing you use:
         await tx.gamePlayerStatus.deleteMany({
           where: { gameId: { in: createdGameIds } }
-        }).catch(() => { /* ignore if model not present */ });
+        });
 
-        // (Optional) If you have Message/Chat models referencing gameId, clear them too here.
-        // await tx.message.deleteMany({ where: { gameId: { in: createdGameIds } } });
-
-        // 2b) Now it's safe to delete the games created by this user
         await tx.game.deleteMany({
           where: { id: { in: createdGameIds } }
         });
       }
 
-      // 3) Delete the user’s own data
-      await tx.notification.deleteMany({ where: { userId: userId } });
-      await tx.feedBack.deleteMany({ where: { createdById: userId } });
-      await tx.coins.deleteMany({ where: { userId: userId } });
-      await tx.coinPurchase.deleteMany({ where: { userId: userId } });
-      await tx.userStep.deleteMany({ where: { userId: userId } });
-      await tx.wallet.deleteMany({ where: { userId: userId } });
+      // D) Delete GamePlayerStatus rows for THIS user in other people’s games
+      await tx.gamePlayerStatus.deleteMany({ where: { userId } });
 
-      // 4) Finally delete the user
+      // E) Delete user-owned records
+      await tx.notification.deleteMany({ where: { userId } });
+      await tx.feedBack.deleteMany({ where: { createdById: userId } });
+      await tx.coins.deleteMany({ where: { userId } });
+      await tx.coinPurchase.deleteMany({ where: { userId } });
+      await tx.userStep.deleteMany({ where: { userId } });
+
+      // F) Wallet: delete its transactions first, then the wallet
+      const wallet = await tx.wallet.findUnique({
+        where: { userId },
+        select: { id: true }
+      });
+
+      if (wallet) {
+        await tx.walletTransaction.deleteMany({ where: { walletId: wallet.id } });
+        await tx.wallet.deleteMany({ where: { userId } });
+      } else {
+        await tx.wallet.deleteMany({ where: { userId } });
+      }
+
+      // G) Finally delete the user
       await tx.user.delete({ where: { id: userId } });
     });
 
@@ -669,6 +671,7 @@ const userDeleteAccount = async (req, res, next) => {
     next(error);
   }
 };
+
 
 
 const getMe = async (req, res, next) => {
