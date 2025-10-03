@@ -122,6 +122,7 @@ const createGame = async (req, res, next) => {
       data: {
         createdById: id,
         gamePrice: Number(price),
+        currentPrice: Number(price),
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         gameType,
