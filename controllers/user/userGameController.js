@@ -663,29 +663,37 @@ const WinningDetails = async (req, res, next) => {
   }
 };
 
+// GET /steps?date=YYYY-MM-DD  (interpreted as UTC day)
 const teststep = async (req, res, next) => {
   try {
     const { id } = req.user;
-    const { date } = req.query;
+    const { date } = req.query; // e.g. "2025-10-02"
 
-    console.log(date);
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new BadRequestError("date must be in YYYY-MM-DD format");
+    }
+
+    // Build UTC boundaries for the whole day
+    const [y, m, d] = date.split("-").map(Number);
+    const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));     // 00:00:00.000Z
+    const end = new Date(Date.UTC(y, m - 1, d + 1, 0, 0, 0, 0)); // next day 00:00:00.000Z
 
     const usersteps = await prisma.userStep.findMany({
       where: {
         userId: id,
-        date: date
-      }
+        date: { gte: start, lt: end }, // all rows on that UTC day
+      },
+      orderBy: { date: "asc" },
     });
 
-    if (usersteps.length === 0) {
-      throw new NotFoundError("steps not")
-    }
+    if (usersteps.length === 0) throw new NotFoundError("steps not");
 
-    handlerOk(res, 200, usersteps, "steps found")
+    handlerOk(res, 200, usersteps, "steps found");
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
+
 
 
 
