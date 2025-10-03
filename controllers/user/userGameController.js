@@ -574,94 +574,158 @@ const saveUserStep = async (req, res, next) => {
   }
 }
 
+// const WinningDetails = async (req, res, next) => {
+//   try {
+//     const { gameId } = req.params;
+
+//     // Fetch game details, including winner and invitedFriends
+//     const findgame = await prisma.game.findUnique({
+//       where: {
+//         id: gameId
+//       },
+//       select: {
+//         winner: true, // Include winner (relation)
+//         startDate: true, // Select startDate (scalar field)
+//         endDate: true, // Select endDate (scalar field)
+//         invitedFriends: true, // Include invitedFriends (relation)
+//       }
+//     });
+
+//     if (!findgame) {
+//       throw new NotFoundError("Game not found");
+//     }
+
+//     console.log(findgame, 'game');
+
+
+//     const { startDate, endDate, winner, invitedFriends } = findgame;
+
+//     console.log(startDate, 'startdate');
+//     console.log(endDate, 'enddate');
+
+
+
+//     // Fetch steps data for each invited user during the game period (between startDate and endDate)
+//     const usersteps = await prisma.userStep.findMany({
+//       where: {
+//         userId: { in: invitedFriends.map(player => player.id) },
+//         date: {
+//           gte: startDate, // Only get steps between start and end dates
+//           lte: endDate
+//         }
+//       },
+//       select: {
+//         userId: true,
+//         steps: true
+//       }
+//     });
+
+//     // Prepare a map to store the steps for each user
+//     const userStepMap = usersteps.reduce((acc, userStep) => {
+//       acc[userStep.userId] = userStep.steps;
+//       return acc;
+//     }, {});
+
+//     // Ensure winner's steps are included
+//     const winnerSteps = userStepMap[winner.id] || 0;
+
+//     // Create response data with each invited player's steps, ensuring that non-participants are excluded
+//     const responseData = invitedFriends.map(player => {
+//       // Include only participants' steps (players in the invitedFriends list)
+//       return {
+//         userId: player.id,
+//         userName: player.userName, // Assuming the `User` model has `userName` field
+//         steps: userStepMap[player.id] || 0, // Get steps or default to 0 if no data exists
+//       };
+//     });
+
+//     responseData.sort((a, b) => b.steps - a.steps);
+
+//     // Add the winning user's data to the response
+//     const winnerData = {
+//       userId: winner.id,
+//       userName: winner.userName,
+//       steps: winnerSteps,
+//     };
+
+//     // Prepare final response with winner and user steps
+//     const statsData = {
+//       gameId: gameId,
+//       winner: winnerData,
+//       userSteps: responseData,  // Steps for all invited participants in the game
+//     };
+
+//     // Send the response with the correct data
+//     handlerOk(res, 200, statsData, "Winning details retrieved successfully");
+
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 const WinningDetails = async (req, res, next) => {
   try {
     const { gameId } = req.params;
 
-    // Fetch game details, including winner and invitedFriends
-    const findgame = await prisma.game.findUnique({
-      where: {
-        id: gameId
-      },
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
       select: {
-        winner: true, // Include winner (relation)
-        startDate: true, // Select startDate (scalar field)
-        endDate: true, // Select endDate (scalar field)
-        invitedFriends: true, // Include invitedFriends (relation)
+        startDate: true,
+        endDate: true,
+        winner: { select: { id: true, userName: true } },
+        invitedFriends: { select: { id: true, userName: true } },
       }
     });
 
-    if (!findgame) {
-      throw new NotFoundError("Game not found");
+    if (!game) throw new NotFoundError("Game not found");
+
+    const { startDate, endDate, winner, invitedFriends } = game;
+
+    // Build participant set = invitedFriends (+ winner to be safe)
+    const ids = new Set(invitedFriends.map(u => u.id));
+    if (winner?.id) ids.add(winner.id);
+    const userIds = [...ids];
+
+    if (userIds.length === 0) {
+      return handlerOk(res, 200, { gameId, winner: null, userSteps: [] }, "Winning details retrieved successfully");
     }
 
-    console.log(findgame, 'game');
-
-
-    const { startDate, endDate, winner, invitedFriends } = findgame;
-
-    console.log(startDate, 'startdate');
-    console.log(endDate, 'enddate');
-
-
-
-    // Fetch steps data for each invited user during the game period (between startDate and endDate)
-    const usersteps = await prisma.userStep.findMany({
+    // GLOBAL (UTC) semantics: use the exact instants stored on the game
+    // If you need inclusive whole end-day, switch to { gte: startDate, lt: endOfDayUTC(endDate) }.
+    const totals = await prisma.userStep.groupBy({
+      by: ["userId"],
       where: {
-        userId: { in: invitedFriends.map(player => player.id) },
-        date: {
-          gte: startDate, // Only get steps between start and end dates
-          lte: endDate
-        }
+        userId: { in: userIds },
+        date: { gte: new Date(startDate), lte: new Date(endDate) }
       },
-      select: {
-        userId: true,
-        steps: true
-      }
+      _sum: { steps: true }
     });
 
-    // Prepare a map to store the steps for each user
-    const userStepMap = usersteps.reduce((acc, userStep) => {
-      acc[userStep.userId] = userStep.steps;
-      return acc;
-    }, {});
+    const stepMap = new Map(totals.map(t => [t.userId, t._sum.steps || 0]));
 
-    // Ensure winner's steps are included
-    const winnerSteps = userStepMap[winner.id] || 0;
+    // invitedFriends leaderboard
+    const userSteps = invitedFriends
+      .map(u => ({
+        userId: u.id,
+        userName: u.userName,
+        steps: stepMap.get(u.id) ?? 0
+      }))
+      .sort((a, b) => b.steps - a.steps);
 
-    // Create response data with each invited player's steps, ensuring that non-participants are excluded
-    const responseData = invitedFriends.map(player => {
-      // Include only participants' steps (players in the invitedFriends list)
-      return {
-        userId: player.id,
-        userName: player.userName, // Assuming the `User` model has `userName` field
-        steps: userStepMap[player.id] || 0, // Get steps or default to 0 if no data exists
-      };
-    });
+    // winner block (even if not in invitedFriends)
+    const winnerData = winner
+      ? { userId: winner.id, userName: winner.userName, steps: stepMap.get(winner.id) ?? 0 }
+      : null;
 
-    responseData.sort((a, b) => b.steps - a.steps);
-
-    // Add the winning user's data to the response
-    const winnerData = {
-      userId: winner.id,
-      userName: winner.userName,
-      steps: winnerSteps,
-    };
-
-    // Prepare final response with winner and user steps
-    const statsData = {
-      gameId: gameId,
-      winner: winnerData,
-      userSteps: responseData,  // Steps for all invited participants in the game
-    };
-
-    // Send the response with the correct data
-    handlerOk(res, 200, statsData, "Winning details retrieved successfully");
-
+    handlerOk(res, 200, { gameId, winner: winnerData, userSteps }, "Winning details retrieved successfully");
   } catch (error) {
     next(error);
   }
 };
+
+
+
 
 // GET /steps?date=YYYY-MM-DD  (interpreted as UTC day)
 const teststep = async (req, res, next) => {
