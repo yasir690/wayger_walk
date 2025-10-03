@@ -663,6 +663,29 @@ const WinningDetails = async (req, res, next) => {
   }
 };
 
+const teststep = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const { date } = req.query;
+
+    console.log(date);
+
+    const usersteps = await prisma.userStep.findMany({
+      where: {
+        userId: id,
+        date: date
+      }
+    });
+
+    if (usersteps.length === 0) {
+      throw new NotFoundError("steps not")
+    }
+
+    handlerOk(res, 200, usersteps, "steps found")
+  } catch (error) {
+    next(error)
+  }
+}
 
 
 
@@ -675,5 +698,6 @@ module.exports = {
   coinPurchase,
   saveUserStep,
   myGames,
-  WinningDetails
+  WinningDetails,
+  teststep
 }

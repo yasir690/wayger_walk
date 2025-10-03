@@ -80,6 +80,14 @@ userGameRouter.get(
   userGameController.WinningDetails
 );
 
+userGameRouter.get(
+  "/teststep",
+  // limiter,
+  verifyUserToken,
+  // validateRequest(userWinningDetailsSchema),
+  userGameController.teststep
+);
+
 
 
 module.exports = userGameRouter;
