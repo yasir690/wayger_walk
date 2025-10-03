@@ -3,7 +3,7 @@ const { NotFoundError, BadRequestError } = require("../../resHandler/CustomError
 const { handlerOk } = require("../../resHandler/responseHandler");
 
 const userPrivacyPolicy = async (req, res, next) => {
-      try {
+  try {
 
     const privacypolicy = await prisma.privacyPolicy.findFirst();
 
@@ -18,7 +18,7 @@ const userPrivacyPolicy = async (req, res, next) => {
 }
 
 const userTermsCondition = async (req, res, next) => {
-     try {
+  try {
     const termscondition = await prisma.termsCondition.findFirst();
 
     if (!termscondition) {
@@ -32,7 +32,7 @@ const userTermsCondition = async (req, res, next) => {
 }
 
 const userAboutApp = async (req, res, next) => {
-    try {
+  try {
     const termscondition = await prisma.aboutApp.findFirst();
 
     if (!termscondition) {
@@ -43,46 +43,46 @@ const userAboutApp = async (req, res, next) => {
   } catch (error) {
     next(error)
   }
-    
+
 }
 
 const userSubmitFeedBack = async (req, res, next) => {
-    try {
-        const {id}=req.user;
-        const {subject,message}=req.body;
-        const files = req.files;
+  try {
+    const { id } = req.user;
+    const { subject, message } = req.body;
+    const files = req.files;
 
-        console.log(files,'files');
-        
+    console.log(files, 'files');
+
 
     const basePath = `http://${req.get("host")}/public/uploads/`;
     const imageUrls = files.map(file => `${basePath}${file.filename}`);
 
-    const createfeedback=await prisma.feedBack.create({
-        data:{
-            subject,
-            message,
-            createdById:id,
-            Images:imageUrls
-        }
+    const createfeedback = await prisma.feedBack.create({
+      data: {
+        subject,
+        message,
+        createdById: id,
+        Images: imageUrls
+      }
     });
 
 
 
     if (!createfeedback) {
-      throw new NotFoundError("feed back not create");
+      throw new NotFoundError("Feed back not create");
     }
 
-    handlerOk(res, 200, createfeedback, 'feed back created successfully')
+    handlerOk(res, 200, createfeedback, 'Feed back created successfully')
   } catch (error) {
     next(error)
   }
-    
+
 }
 
-module.exports={
-    userPrivacyPolicy,
-    userTermsCondition,
-    userAboutApp,
-    userSubmitFeedBack
+module.exports = {
+  userPrivacyPolicy,
+  userTermsCondition,
+  userAboutApp,
+  userSubmitFeedBack
 }

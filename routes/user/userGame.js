@@ -80,13 +80,13 @@ userGameRouter.get(
   userGameController.WinningDetails
 );
 
-userGameRouter.get(
-  "/teststep",
-  // limiter,
-  verifyUserToken,
-  // validateRequest(userWinningDetailsSchema),
-  userGameController.teststep
-);
+// userGameRouter.get(
+//   "/teststep",
+//   // limiter,
+//   verifyUserToken,
+//   // validateRequest(userWinningDetailsSchema),
+//   userGameController.teststep
+// );
 
 
 

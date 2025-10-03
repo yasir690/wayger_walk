@@ -29,7 +29,7 @@ const userRegister = async (req, res, next) => {
     });
 
     if (finduser) {
-      throw new ConflictError("User Already Exist");
+      throw new ConflictError("User already exist");
     }
 
     console.log(finduser, "finduser");
@@ -58,7 +58,7 @@ const userRegister = async (req, res, next) => {
 
     await sendEmails(userEmail, emailData.subject, emailData.html);
 
-    handlerOk(res, 201, otp, "otp send successfully");
+    handlerOk(res, 201, otp, "OTP sent successfully");
   } catch (error) {
     next(error);
   }
@@ -75,7 +75,7 @@ const userLogin = async (req, res, next) => {
     });
 
     if (!finduser) {
-      throw new NotFoundError("user not found");
+      throw new NotFoundError("User not found.");
     }
 
     const otp = generateOtp();
@@ -102,7 +102,7 @@ const userLogin = async (req, res, next) => {
 
     await sendEmails(userEmail, emailData.subject, emailData.html);
 
-    handlerOk(res, 200, otp, "otp send successfully");
+    handlerOk(res, 200, otp, "OTP sent successfully");
   } catch (error) {
     next(error);
   }
@@ -274,7 +274,7 @@ const userForgetPassword = async (req, res, next) => {
     });
 
     if (!finduser) {
-      throw new NotFoundError("email not found");
+      throw new NotFoundError("Email not found.");
     }
 
     const otp = generateOtp();
@@ -297,7 +297,7 @@ const userForgetPassword = async (req, res, next) => {
 
     await sendEmails(userEmail, emailData.subject, emailData.html);
 
-    handlerOk(res, 200, otp, "otp send successfully");
+    handlerOk(res, 200, otp, "OTP sent successfully");
   } catch (error) {
     next(error);
   }
@@ -320,10 +320,10 @@ const userResetPassword = async (req, res, next) => {
     });
 
     if (!updatePassword) {
-      throw new ValidationError("password not update");
+      throw new ValidationError("Password not update");
     }
 
-    handlerOk(res, 200, null, "password updated successfully");
+    handlerOk(res, 200, null, "Password updated successfully");
   } catch (error) {
     next(error);
   }
@@ -342,7 +342,7 @@ const resendOtp = async (req, res, next) => {
     });
 
     if (!existingOtp) {
-      throw new NotFoundError("OTP Record Not Found");
+      throw new NotFoundError("OTP record not found.");
     }
 
     const otp = generateOtp();
@@ -364,7 +364,7 @@ const resendOtp = async (req, res, next) => {
 
     await sendEmails(userEmail, emailData.subject, emailData.html);
 
-    handlerOk(res, 201, otp, "OTP sent successfully. Now verify your OTP.");
+    handlerOk(res, 201, otp, "OTP sent successfully. Please verify your OTP.");
   } catch (error) {
     next(error);
   }
@@ -405,7 +405,7 @@ const createProfile = async (req, res, next) => {
     });
 
     if (existprofile) {
-      throw new ConflictError("User profile already exists");
+      throw new ConflictError("User profile already exists.");
     }
 
     const findnumber = await prisma.user.findFirst({
@@ -415,7 +415,7 @@ const createProfile = async (req, res, next) => {
     });
 
     if (findnumber) {
-      throw new ConflictError("Phone number already exists");
+      throw new ConflictError("Phone number already exists.");
     }
 
     // Build data object dynamically, only include image if uploaded
@@ -458,7 +458,7 @@ const createProfile = async (req, res, next) => {
     // Generate token
     const token = genToken({ id: saveuser.id, userType: userConstants.USER });
 
-    return handlerOk(res, 201, { ...saveuser, userToken: token }, "Profile Created successfully");
+    return handlerOk(res, 201, { ...saveuser, userToken: token }, "Profile created successfully");
   } catch (error) {
     next(error);
   }
@@ -491,7 +491,7 @@ const userEditProfile = async (req, res, next) => {
     });
 
     if (!currentPrifile) {
-      throw new NotFoundError("user not found");
+      throw new NotFoundError("User not found");
     }
 
     const updateObj = {};
@@ -550,10 +550,10 @@ const userEditProfile = async (req, res, next) => {
     });
 
     if (!updateuser) {
-      throw new ValidationError("user not update");
+      throw new ValidationError("User not update");
     }
 
-    handlerOk(res, 200, updateuser, "user updated successfully");
+    handlerOk(res, 200, updateuser, "User updated successfully");
   } catch (error) {
     next(error);
   }
@@ -574,10 +574,10 @@ const userLogOut = async (req, res, next) => {
     });
 
     if (!logout) {
-      throw new ValidationError("user not logout");
+      throw new ValidationError("User not logout");
     }
 
-    handlerOk(res, 200, null, "user logout successfully");
+    handlerOk(res, 200, null, "User logout successfully");
   } catch (error) {
     next(error);
   }
@@ -729,7 +729,7 @@ const getMe = async (req, res, next) => {
       res,
       200,
       { ...obj, ...response },
-      "user found successfully"
+      "User found successfully"
     );
   } catch (error) {
     next(error);
@@ -744,7 +744,7 @@ const changePassword = async (req, res, next) => {
     const comparePass = await comparePassword(currentpassword, password);
 
     if (!comparePass) {
-      throw new BadRequestError("password not correct");
+      throw new BadRequestError("Password not correct");
     }
 
     const hashedPassword = await hashPassword(newpassword, 10);
@@ -759,10 +759,10 @@ const changePassword = async (req, res, next) => {
     });
 
     if (!updatepass) {
-      throw new ValidationError("Password Not Change");
+      throw new ValidationError("Password not change");
     }
 
-    handlerOk(res, 200, updatepass, 'Password Changed Successfully');
+    handlerOk(res, 200, updatepass, 'Password changed successfully');
   } catch (error) {
     next(error);
   }

@@ -21,9 +21,9 @@ const showAllNotification = async (req, res, next) => {
           },
         },
         // game:true
-        game:{
-          include:{
-            invitedFriends:true
+        game: {
+          include: {
+            invitedFriends: true
           }
         }
       }
@@ -32,14 +32,14 @@ const showAllNotification = async (req, res, next) => {
     if (notifications.length === 0) {
       // throw new NotFoundError("notifications not found")
       return res.status(200).json({
-        success:true,
-        message:"notification not found",
-        data:[]
+        success: true,
+        message: "Notification not found",
+        data: []
       })
     }
 
 
-    handlerOk(res, 200, notifications, 'notifications found successfully')
+    handlerOk(res, 200, notifications, 'Notifications found successfully')
 
 
 
@@ -59,7 +59,7 @@ const readNotification = async (req, res, next) => {
     });
 
     if (!notification) {
-      throw new NotFoundError("notification id not found")
+      throw new NotFoundError("Notification id not found")
     }
 
     const readnotification = await prisma.notification.update({
@@ -72,10 +72,10 @@ const readNotification = async (req, res, next) => {
     });
 
     if (!readnotification) {
-      throw new ValidationError("notification is not read")
+      throw new ValidationError("Notification is not read")
     }
 
-    handlerOk(res, 200, readnotification, 'notification read successfully')
+    handlerOk(res, 200, readnotification, 'Notification read successfully')
 
 
   } catch (error) {
@@ -90,8 +90,8 @@ const onAndOffNotification = async (req, res, next) => {
     notificationOnAndOff = !notificationOnAndOff;
 
     let message = notificationOnAndOff
-      ? "Notification On Successfully"
-      : "Notification Off Successfully";
+      ? "Notification nn successfully"
+      : "Notification off successfully";
 
     await prisma.user.update({
       where: {
@@ -109,31 +109,31 @@ const onAndOffNotification = async (req, res, next) => {
   }
 }
 
-const rejectRequest=async (req,res,next) => {
+const rejectRequest = async (req, res, next) => {
   try {
-    const {notificationId}=req.params;
+    const { notificationId } = req.params;
 
-     const findnotification=await prisma.notification.findUnique({
-      where:{
-        id:notificationId
+    const findnotification = await prisma.notification.findUnique({
+      where: {
+        id: notificationId
       }
     });
 
-    if(!findnotification){
-      throw new NotFoundError("notification not found")
+    if (!findnotification) {
+      throw new NotFoundError("Notification not found")
     }
 
-    const deletenotification=await prisma.notification.delete({
-      where:{
-        id:findnotification.id
+    const deletenotification = await prisma.notification.delete({
+      where: {
+        id: findnotification.id
       }
     });
 
-    if(!deletenotification){
-      throw new ValidationError("notification not delete")
+    if (!deletenotification) {
+      throw new ValidationError("Notification not delete")
     }
 
-    handlerOk(res,200,null,"reject request successfully")
+    handlerOk(res, 200, null, "Reject request successfully")
   } catch (error) {
     next(error)
   }
