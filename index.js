@@ -50,188 +50,6 @@ adminWalletSeed();
 // Run every 1 minutes
 
 
-// cron.schedule('*/1 * * * *', async () => {
-//   try {
-//     console.log('⏰ Running game check job...');
-
-//     const now = new Date();
-//     now.setSeconds(0, 0); // Normalize to the nearest minute
-//     console.log('📅 Current UTC time:', now.toISOString());
-
-//     const endedGames = await prisma.game.findMany({
-//       where: {
-//         endDate: { lte: now },
-//         isEnded: false,
-//       },
-//       include: {
-//         totalPlayers: true,
-//         invitedFriends: true
-//       },
-//     });
-
-//     if (endedGames.length === 0) {
-//       console.log('✅ No ended games to process.');
-//       return;
-//     }
-
-//     console.log(`🔍 Found ${endedGames.length} ended game(s).`);
-
-//     for (const game of endedGames) {
-//       const { id: gameId, gameTitle, invitedFriends, currentPrice } = game;
-
-//       // Ensure invitedFriends is not empty
-//       const playerIds = invitedFriends?.map(player => player.id) || [];
-//       if (playerIds.length === 0) {
-//         console.log(`⚠️ No players found for game "${gameTitle}"`);
-//         continue;
-//       }
-
-//       // Get total steps per user (no date filter)
-//       const stepTotals = await prisma.userStep.groupBy({
-//         by: ['userId'],
-//         where: {
-//           userId: { in: playerIds },
-//         },
-//         _sum: {
-//           steps: true,
-//         },
-//       });
-
-//       if (stepTotals.length === 0) {
-//         console.log(`⚠️ No step data found for game "${gameTitle}"`);
-//         continue;
-//       }
-
-//       console.log(`📊 Step Totals for game "${gameTitle}":`);
-//       stepTotals.forEach(entry => {
-//         console.log(`- ${entry.userId}: ${entry._sum.steps ?? 0} steps`);
-//       });
-
-//       // Find the user with the most steps
-//       let winner = stepTotals[0];
-//       for (const curr of stepTotals) {
-//         if ((curr._sum.steps ?? 0) > (winner._sum.steps ?? 0)) {
-//           winner = curr;
-//         }
-//       }
-
-//       const winnerUser = await prisma.user.findUnique({
-//         where: { id: winner.userId },
-//       });
-
-//       if (!winnerUser) {
-//         console.warn(`❌ Winner not found: ${winner.userId}`);
-//         continue;
-//       }
-
-//       const stepCount = winner._sum.steps ?? 0;
-//       const deductionAmount = currentPrice * 0.1; // 10% deduction
-//       const winnerAmount = currentPrice - deductionAmount; // Remaining amount for the winner
-//       console.log(currentPrice, 'current price');
-//       console.log(deductionAmount, 'deduct amount');
-//       console.log(winnerAmount, 'winner amount');
-
-//       // Send notification to winner
-//       await prisma.notification.create({
-//         data: {
-//           userId: winnerUser.id,
-//           notificationType: notificationConstants.WINNING,
-//           gameId: gameId,
-//           title: `🎉 ${winnerUser.userName} won the game!`,
-//           description: `You won ${gameTitle} with ${stepCount} steps! and your winning amount is ${winnerAmount}`,
-//         },
-//       });
-
-//       // Mark game as ended and record winner
-//       await prisma.game.update({
-//         where: { id: gameId },
-//         data: {
-//           isEnded: true,
-//           winnerId: winnerUser.id,
-//           gameStatus: gameStatusConstants.PASTGAME
-//         },
-//       });
-
-//       // Using a transaction to ensure atomicity of both wallet updates
-//       await prisma.$transaction(async (tx) => {
-//         // Ensure winner's wallet exists, create it with balance 0 if it doesn't exist
-//         const winnerWallet = await tx.wallet.upsert({
-//           where: { userId: winnerUser.id },
-//           create: {
-//             userId: winnerUser.id,
-//             balance: 0, // Initial balance if wallet is created
-//           },
-//           update: {
-//             balance: {
-//               increment: -deductionAmount, // Deduct 10% from winner's wallet
-//             }
-//           }
-//         });
-
-//         // Check the balance after deduction
-//         const updatedWinnerWallet = await tx.wallet.findUnique({
-//           where: { userId: winnerUser.id },
-//         });
-//         console.log('Winner Wallet Balance After Deduction:', updatedWinnerWallet.balance);
-
-//         // Find or create admin wallet
-//         const findAdmin = await tx.admin.findFirst({
-//           where: {
-//             email: "admin@example.com" // Consider switching to adminId
-//           }
-//         });
-
-//         if (!findAdmin) {
-//           throw new NotFoundError("Admin not found");
-//         }
-
-//         const adminWallet = await tx.adminWallet.upsert({
-//           where: { adminId: findAdmin.id },
-//           create: {
-//             adminId: findAdmin.id,
-//             balance: deductionAmount, // Admin starts with this commission amount
-//           },
-//           update: {
-//             balance: {
-//               increment: deductionAmount // Add commission to admin's wallet
-//             }
-//           }
-//         });
-
-//         // Record admin wallet transaction
-//         await tx.adminWalletTransaction.create({
-//           data: {
-//             walletId: adminWallet.id,
-//             amount: deductionAmount,
-//             gameId: gameId,
-//             description: `Admin's share of game "${gameTitle}" earnings`
-//           }
-//         });
-
-//         // **Add remaining amount to winner's wallet in a single update:**
-//         await tx.wallet.update({
-//           where: { userId: winnerUser.id },
-//           data: {
-//             balance: {
-//               increment: winnerAmount // Add remaining amount to winner's wallet
-//             }
-//           }
-//         });
-
-//         // Check winner's final balance after the update
-//         const finalWinnerWallet = await tx.wallet.findUnique({
-//           where: { userId: winnerUser.id },
-//         });
-//         console.log('Winner Wallet Final Balance:', finalWinnerWallet.balance);
-//       });
-
-//       console.log(`🏆 Game "${gameTitle}" ended. Winner: ${winnerUser.userName} with ${stepCount} steps.`);
-//     }
-//   } catch (error) {
-//     console.error('❌ Error in game check job:', error);
-//   }
-// });
-
 cron.schedule('*/1 * * * *', async () => {
   try {
     console.log('⏰ Running game check job...');
@@ -349,6 +167,23 @@ cron.schedule('*/1 * * * *', async () => {
             }
           }
         });
+
+        // ✅ Ensure winner has a Coins record and add winning coins
+        const winnerCoins = await tx.coins.upsert({
+          where: { userId: winnerUser.id },
+          create: {
+            userId: winnerUser.id,
+            coins: winnerAmount,   // start with winning coins
+          },
+          update: {
+            coins: {
+              increment: winnerAmount,  // add coins equal to winning amount
+            }
+          }
+        });
+
+        console.log("Winner Wallet:", winnerWallet.balance);
+        console.log("Winner Coins:", winnerCoins.coins);
 
         // Check the balance after adding winner amount
         const updatedWinnerWallet = await tx.wallet.findUnique({
