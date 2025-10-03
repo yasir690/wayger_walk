@@ -639,6 +639,8 @@ const WinningDetails = async (req, res, next) => {
       };
     });
 
+    responseData.sort((a, b) => b.steps - a.steps);
+
     // Add the winning user's data to the response
     const winnerData = {
       userId: winner.id,
