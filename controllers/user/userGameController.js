@@ -664,6 +664,67 @@ const saveUserStep = async (req, res, next) => {
 // };
 
 
+// const WinningDetails = async (req, res, next) => {
+//   try {
+//     const { gameId } = req.params;
+
+//     const game = await prisma.game.findUnique({
+//       where: { id: gameId },
+//       select: {
+//         startDate: true,
+//         endDate: true,
+//         winner: { select: { id: true, userName: true } },
+//         invitedFriends: { select: { id: true, userName: true } },
+//       }
+//     });
+
+//     if (!game) throw new NotFoundError("Game not found");
+
+//     const { startDate, endDate, winner, invitedFriends } = game;
+
+//     // Build participant set = invitedFriends (+ winner to be safe)
+//     const ids = new Set(invitedFriends.map(u => u.id));
+//     if (winner?.id) ids.add(winner.id);
+//     const userIds = [...ids];
+
+//     if (userIds.length === 0) {
+//       return handlerOk(res, 200, { gameId, winner: null, userSteps: [] }, "Winning details retrieved successfully");
+//     }
+
+//     // GLOBAL (UTC) semantics: use the exact instants stored on the game
+//     // If you need inclusive whole end-day, switch to { gte: startDate, lt: endOfDayUTC(endDate) }.
+//     const totals = await prisma.userStep.groupBy({
+//       by: ["userId"],
+//       where: {
+//         userId: { in: userIds },
+//         date: { gte: new Date(startDate), lte: new Date(endDate) }
+//       },
+//       _sum: { steps: true }
+//     });
+
+//     const stepMap = new Map(totals.map(t => [t.userId, t._sum.steps || 0]));
+
+//     // invitedFriends leaderboard
+//     const userSteps = invitedFriends
+//       .map(u => ({
+//         userId: u.id,
+//         userName: u.userName,
+//         steps: stepMap.get(u.id) ?? 0
+//       }))
+//       .sort((a, b) => b.steps - a.steps);
+
+//     // winner block (even if not in invitedFriends)
+//     const winnerData = winner
+//       ? { userId: winner.id, userName: winner.userName, steps: stepMap.get(winner.id) ?? 0 }
+//       : null;
+
+//     handlerOk(res, 200, { gameId, winner: winnerData, userSteps }, "Winning details retrieved successfully");
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+
 const WinningDetails = async (req, res, next) => {
   try {
     const { gameId } = req.params;
@@ -682,29 +743,32 @@ const WinningDetails = async (req, res, next) => {
 
     const { startDate, endDate, winner, invitedFriends } = game;
 
-    // Build participant set = invitedFriends (+ winner to be safe)
+    // Participants = invited friends (+ winner just in case)
     const ids = new Set(invitedFriends.map(u => u.id));
     if (winner?.id) ids.add(winner.id);
     const userIds = [...ids];
 
-    if (userIds.length === 0) {
+    if (!userIds.length) {
       return handlerOk(res, 200, { gameId, winner: null, userSteps: [] }, "Winning details retrieved successfully");
     }
 
-    // GLOBAL (UTC) semantics: use the exact instants stored on the game
-    // If you need inclusive whole end-day, switch to { gte: startDate, lt: endOfDayUTC(endDate) }.
+    // Global UTC window, end-exclusive to avoid boundary double-count
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const endExclusive = new Date(end.getTime());
+
     const totals = await prisma.userStep.groupBy({
       by: ["userId"],
       where: {
         userId: { in: userIds },
-        date: { gte: new Date(startDate), lte: new Date(endDate) }
+        date: { gte: start, lt: endExclusive },
       },
       _sum: { steps: true }
     });
 
     const stepMap = new Map(totals.map(t => [t.userId, t._sum.steps || 0]));
 
-    // invitedFriends leaderboard
+    // Leaderboard for invited friends
     const userSteps = invitedFriends
       .map(u => ({
         userId: u.id,
@@ -713,7 +777,7 @@ const WinningDetails = async (req, res, next) => {
       }))
       .sort((a, b) => b.steps - a.steps);
 
-    // winner block (even if not in invitedFriends)
+    // Winner info (even if not invited)
     const winnerData = winner
       ? { userId: winner.id, userName: winner.userName, steps: stepMap.get(winner.id) ?? 0 }
       : null;
