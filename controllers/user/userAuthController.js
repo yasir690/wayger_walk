@@ -585,53 +585,91 @@ const userLogOut = async (req, res, next) => {
 
 const userDeleteAccount = async (req, res, next) => {
   try {
-    const { id } = req.user;
+    const { id: userId } = req.user;
 
-   // Step 1: Disconnect user from games first (manual loop required)
-    const gamesWithUser = await prisma.game.findMany({
-      where: {
-        OR: [
-          { totalPlayers: { some: { id } } },
-          { invitedFriends: { some: { id } } }
-        ]
-      },
-      select: { id: true }
-    });
-
-    for (const game of gamesWithUser) {
-      await prisma.game.update({
-        where: { id: game.id },
-        data: {
-          totalPlayers: { disconnect: { id } },
-          invitedFriends: { disconnect: { id } },
-        }
+    await prisma.$transaction(async (tx) => {
+      // 0) Detach user from games where they are participant/invitee (not necessarily creator)
+      const gamesWithUser = await tx.game.findMany({
+        where: {
+          OR: [
+            { totalPlayers: { some: { id: userId } } },
+            { invitedFriends: { some: { id: userId } } }
+          ]
+        },
+        select: { id: true }
       });
-    }
 
-    // Step 2: Delete all in one transaction
-    await prisma.$transaction([
-      prisma.notification.deleteMany({ where: { userId: id } }),
-      prisma.feedBack.deleteMany({ where: { createdById: id } }),
-      prisma.coins.deleteMany({ where: { userId: id } }),
-      prisma.coinPurchase.deleteMany({ where: { userId: id } }),
-      prisma.userStep.deleteMany({ where: { userId: id } }),
-      prisma.wallet.deleteMany({ where: { userId: id } }),
+      for (const g of gamesWithUser) {
+        await tx.game.update({
+          where: { id: g.id },
+          data: {
+            totalPlayers: { disconnect: { id: userId } },
+            invitedFriends: { disconnect: { id: userId } },
+          }
+        });
+      }
 
-      prisma.game.deleteMany({ where: { createdById: id } }),
-      prisma.game.updateMany({
-        where: { winnerId: id },
-        data: { winnerId: null },
-      }),
+      // 1) Null-out winner where this user is the winner (in any game)
+      await tx.game.updateMany({
+        where: { winnerId: userId },
+        data: { winnerId: null }
+      });
 
-      prisma.user.delete({ where: { id } }),
-    ]);
+      // 2) Collect games CREATED by this user (these will be deleted)
+      const createdGames = await tx.game.findMany({
+        where: { createdById: userId },
+        select: { id: true }
+      });
+      const createdGameIds = createdGames.map(g => g.id);
 
+      if (createdGameIds.length) {
+        // 2a) Delete/clear dependents that hold FK -> Game
+        // If you prefer to keep notifications, set gameId null instead of delete.
+        await tx.notification.updateMany({
+          where: { gameId: { in: createdGameIds } },
+          data: { gameId: null }
+        });
+
+        // If you want to remove those notifications entirely, use deleteMany instead of updateMany above.
+
+        // AdminWalletTransaction -> Game (hard delete is typical)
+        await tx.adminWalletTransaction.deleteMany({
+          where: { gameId: { in: createdGameIds } }
+        });
+
+        // GamePlayerStatus -> Game (if this model exists in your schema)
+        // Rename to the exact model name/casing you use:
+        await tx.gamePlayerStatus.deleteMany({
+          where: { gameId: { in: createdGameIds } }
+        }).catch(() => { /* ignore if model not present */ });
+
+        // (Optional) If you have Message/Chat models referencing gameId, clear them too here.
+        // await tx.message.deleteMany({ where: { gameId: { in: createdGameIds } } });
+
+        // 2b) Now it's safe to delete the games created by this user
+        await tx.game.deleteMany({
+          where: { id: { in: createdGameIds } }
+        });
+      }
+
+      // 3) Delete the user’s own data
+      await tx.notification.deleteMany({ where: { userId: userId } });
+      await tx.feedBack.deleteMany({ where: { createdById: userId } });
+      await tx.coins.deleteMany({ where: { userId: userId } });
+      await tx.coinPurchase.deleteMany({ where: { userId: userId } });
+      await tx.userStep.deleteMany({ where: { userId: userId } });
+      await tx.wallet.deleteMany({ where: { userId: userId } });
+
+      // 4) Finally delete the user
+      await tx.user.delete({ where: { id: userId } });
+    });
 
     handlerOk(res, 200, null, "User account deleted successfully");
   } catch (error) {
     next(error);
   }
 };
+
 
 const getMe = async (req, res, next) => {
   try {
