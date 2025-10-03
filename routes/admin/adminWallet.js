@@ -11,7 +11,7 @@ const { verifyAdminToken } = require("../../middleware/auth");
 
 adminWalletRouter.get(
   "/showAllAdminTransactions",
-  limiter,
+  // limiter,
   verifyAdminToken,
   adminWalletController.showAllAdminTransactions
 );

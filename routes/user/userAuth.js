@@ -86,7 +86,7 @@ userAuthRouter.delete(
 
 userAuthRouter.get(
   "/getMe",
-  limiter,
+  // limiter,
   verifyUserToken,
   userAuthController.getMe
 );
@@ -103,7 +103,7 @@ userAuthRouter.post(
   "/socialLogin",
   limiter,
   verifyUserToken,
-    validateRequest(socialLoginSchema),
+  validateRequest(socialLoginSchema),
 
   userAuthController.socialLogin
 );

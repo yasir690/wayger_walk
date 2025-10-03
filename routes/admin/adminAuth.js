@@ -20,7 +20,7 @@ adminAuthRouter.post(
 
 adminAuthRouter.post(
   "/editImage",
-  limiter,
+  // limiter,
   verifyAdminToken,
   handleMultiPartData.single("image"),
   adminAuthController.editImage

@@ -16,7 +16,7 @@ const { verifyUserToken } = require("../../middleware/auth");
 
 userNotificationRouter.get(
   "/showAllNotification",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userAllNotificationSchema),
   userNotificationController.showAllNotification
@@ -24,7 +24,7 @@ userNotificationRouter.get(
 
 userNotificationRouter.put(
   "/readNotification/:notificationId",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userNotificationReadSchema),
   userNotificationController.readNotification
@@ -32,16 +32,16 @@ userNotificationRouter.put(
 
 userNotificationRouter.put(
   "/onAndOffNotification",
-  limiter,
+  // limiter,
   verifyUserToken,
   userNotificationController.onAndOffNotification
 );
 
 userNotificationRouter.delete(
   "/rejectRequest/:notificationId",
-  limiter,
+  // limiter,
   verifyUserToken,
-    validateRequest(userRejectNotificationSchema),
+  validateRequest(userRejectNotificationSchema),
   userNotificationController.rejectRequest
 );
 

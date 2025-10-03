@@ -10,7 +10,7 @@ const handleMultiPartData = require("../../middleware/multiPartData");
 
 userGameRouter.get(
   "/userSearch",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userSearchSchema),
   userGameController.userSearch
@@ -18,7 +18,7 @@ userGameRouter.get(
 
 userGameRouter.post(
   "/createGame",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userCreateGameSchema),
   handleMultiPartData.single("image"),
@@ -27,7 +27,7 @@ userGameRouter.post(
 
 userGameRouter.get(
   "/showGames",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userShowGameSchema),
   userGameController.showGames
@@ -35,7 +35,7 @@ userGameRouter.get(
 
 userGameRouter.get(
   "/myGames",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userMyGameSchema),
   userGameController.myGames
@@ -43,7 +43,7 @@ userGameRouter.get(
 
 userGameRouter.post(
   "/joinGame/:gameId",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userJoinGameSchema),
   userGameController.joinGame
@@ -51,14 +51,14 @@ userGameRouter.post(
 
 userGameRouter.get(
   "/showCoins",
-  limiter,
+  // limiter,
   verifyUserToken,
   userGameController.showCoins
 );
 
 userGameRouter.post(
   "/coinPurchase/:coinId",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userCoinPurchaseSchema),
   userGameController.coinPurchase
@@ -66,7 +66,7 @@ userGameRouter.post(
 
 userGameRouter.post(
   "/saveUserStep",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userStepSchema),
   userGameController.saveUserStep
@@ -74,7 +74,7 @@ userGameRouter.post(
 
 userGameRouter.get(
   "/WinningDetails/:gameId",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userWinningDetailsSchema),
   userGameController.WinningDetails

@@ -10,28 +10,28 @@ const handleMultiPartData = require("../../middleware/multiPartData");
 
 userContentRouter.get(
   "/userPrivacyPolicy",
-  limiter,
+  // limiter,
   verifyUserToken,
   userContentController.userPrivacyPolicy
 );
 
 userContentRouter.get(
   "/userTermsCondition",
-  limiter,
+  // limiter,
   verifyUserToken,
   userContentController.userTermsCondition
 );
 
 userContentRouter.get(
   "/userAboutApp",
-  limiter,
+  // limiter,
   verifyUserToken,
   userContentController.userAboutApp
 );
 
 userContentRouter.post(
   "/userSubmitFeedBack",
-  limiter,
+  // limiter,
   verifyUserToken,
   validateRequest(userSubmitFeedBackSchema),
   handleMultiPartData.array("images"),
