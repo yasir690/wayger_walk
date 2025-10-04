@@ -87,18 +87,19 @@ cron.schedule('*/1 * * * *', async () => {
       }
 
       // 2) Sum steps within the game period at *day* granularity (UTC)
-      const { startDayUTC, endDayExclusiveUTC } = dayRangeUTC(game.startDate, game.endDate);
-      console.log('🪟 day window start ISO:', startDayUTC.toISOString());
-      console.log('🪟 day window endExclusive ISO:', endDayExclusiveUTC.toISOString());
+     const { startDayUTC, endDayInclusiveUTC } = dayRangeUTC(game.startDate, game.endDate);
 
-      const totals = await prisma.userStep.groupBy({
-        by: ['userId'],
-        where: {
-          userId: { in: playerIds },
-          date: { gte: startDayUTC, lt: endDayExclusiveUTC },
-        },
-        _sum: { steps: true },
-      });
+const totals = await prisma.userStep.groupBy({
+  by: ['userId'],
+  where: {
+    userId: { in: playerIds },
+    date: {
+      gte: startDayUTC,
+      lte: endDayInclusiveUTC,
+    },
+  },
+  _sum: { steps: true },
+});
 
       if (!totals.length) {
         console.log(`⚠️ No step data for "${gameTitle}" (${gameId}) in its window.`);
