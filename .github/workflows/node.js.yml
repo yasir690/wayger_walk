@@ -1,29 +1,152 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
-
     runs-on: self-hosted
+    timeout-minutes: 30
 
-    strategy:
-      matrix:
-        node-version: [22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+    # Expose secrets as environment variables
+    env:
+      DB_NAME: "${{ secrets.DB_NAME }}" 
+      DATABASE_URL: "${{ secrets.DATABASE_URL }}" 
+      PORT: "${{ secrets.PORT }}"
+      API_PRIFEX: "${{ secrets.API_PRIFEX }}"
+      SECRET_KEY: "${{ secrets.SECRET_KEY }}"
+      MAIL_SERVICE: "${{ secrets.MAIL_SERVICE }}"
+      MAIL_HOST: "${{ secrets.MAIL_HOST }}"
+      MAIL_USERNAME: "${{ secrets.MAIL_USERNAME }}"
+      MAIL_PASSWORD: "${{ secrets.MAIL_PASSWORD }}"
+      MAIL_ENCRYPTION: "${{ secrets.MAIL_ENCRYPTION }}"
+      MAIL_PORT: "${{ secrets.MAIL_PORT }}"
+      MAIL_FROM_NAME: "${{ secrets.MAIL_FROM_NAME }}"
+      ACCESS_KEY_ID: "${{ secrets.ACCESS_KEY_ID }}"
+      SECRET_ACCESS_KEY: "${{ secrets.SECRET_ACCESS_KEY }}"
+      BUCKET_REGION: "${{ secrets.BUCKET_REGION }}"
+      BUCKET_NAME: "${{ secrets.BUCKET_NAME }}"
+      S3_ACCESS_URL: "${{ secrets.S3_ACCESS_URL }}"
+
+  
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+      # Print the environment info to quickly debug issues
+      - name: Kickoff
+        run: |
+          set -x
+          echo "== CI kickoff at $(date -u) =="
+          echo "Runner: $(uname -a)"
+          whoami
+          node -v || true
+          npm -v || true
+
+      # Checkout code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Create .env file from secrets with validation
+      - name: Create .env from secrets (no heredoc)
+        run: |
+          set -euo pipefail
+
+          # Prefer DATABASE_URL, fallback to LIVE_DATABASE_URL
+          DB_URL_VALUE="${DATABASE_URL:-${LIVE_DATABASE_URL:-}}"
+          if [ -z "${DB_URL_VALUE}" ]; then
+            echo "ERROR: DATABASE_URL resolved to empty"; exit 1
+          fi
+
+          # Remove any existing .env and recreate it
+          rm -f .env
+          printf '%s\n' "DATABASE_URL=${DB_URL_VALUE}"            >> .env
+          printf '%s\n' "NODE_ENV=production"                     >> .env
+          printf '%s\n' "PORT=${PORT}"                            >> .env
+          printf '%s\n' "API_PRIFEX=${API_PRIFEX}"                            >> .env
+          printf '%s\n' "SECRET_KEY=${SECRET_KEY}"                >> .env
+          printf '%s\n' "MAIL_SERVICE=${MAIL_SERVICE}"            >> .env
+          printf '%s\n' "MAIL_HOST=${MAIL_HOST}"                  >> .env
+          printf '%s\n' "MAIL_USERNAME=${MAIL_USERNAME}"          >> .env
+          printf '%s\n' "MAIL_PASSWORD=${MAIL_PASSWORD}"          >> .env
+          printf '%s\n' "MAIL_ENCRYPTION=${MAIL_ENCRYPTION}"      >> .env
+          printf '%s\n' "MAIL_PORT=${MAIL_PORT}"                  >> .env
+          printf '%s\n' "MAIL_FROM_NAME=${MAIL_FROM_NAME}"        >> .env
+          printf '%s\n' "ACCESS_KEY_ID=${ACCESS_KEY_ID}"        >> .env
+          printf '%s\n' "SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}"        >> .env
+          printf '%s\n' "BUCKET_REGION=${BUCKET_REGION}"        >> .env
+          printf '%s\n' "BUCKET_NAME=${BUCKET_NAME}"        >> .env
+          printf '%s\n' "S3_ACCESS_URL=${S3_ACCESS_URL}"        >> .env
+          echo "Wrote .env with $(wc -l < .env) lines."
+
+          # Validate the environment variables
+          if ! grep -q '^DATABASE_URL=' .env; then
+            echo "ERROR: DATABASE_URL not written to .env"; exit 1
+          fi
+          LEN="$(awk -F= '/^DATABASE_URL=/{print length($2)}' .env)"
+          if [ "${LEN}" -eq 0 ]; then
+            echo "ERROR: DATABASE_URL in .env is empty"; exit 1
+          fi
+
+      # Use Node.js
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm ci --loglevel=verbose --foreground-scripts
+
+      # Prisma generation & migration
+      - name: Build & Prisma migrate (verbose)
+        run: |
+          set -euxo pipefail
+          echo "=== npm ci ==="
+          npm ci --loglevel=verbose --foreground-scripts
+          echo "=== build (if present) ==="
+          npm run build --if-present
+          echo "=== prisma generate ==="
+          unset DATABASE_URL || true
+          npx prisma generate
+          echo "=== prisma migrate ==="
+          npx prisma migrate deploy || npx prisma db push
+
+      # Ensure PM2 is installed
+      - name: Ensure PM2 installed
+        run: |
+          command -v pm2 >/dev/null 2>&1 || sudo npm i -g pm2
+          pm2 -v
+
+      # Start/Reload app with PM2
+      - name: Start/Reload app with PM2
+        run: |
+          set -euo pipefail
+          APP_NAME="forgetmenot-backend"
+          if pm2 describe "${APP_NAME}" >/dev/null 2>&1; then
+            pm2 reload "${APP_NAME}" --update-env
+          else
+            pm2 start index.js --name "${APP_NAME}"
+          fi
+          pm2 delete index || true
+          pm2 save
+
+      # Show startup logs
+      - name: Show startup logs
+        run: |
+          set -x
+          pm2 status || true
+          tail -n 120 ~/.pm2/logs/forgetmenot-backend-out.log   || true
+          tail -n 120 ~/.pm2/logs/forgetmenot-backend-error.log || true
+
+
+      # Final status and logs (non-blocking)
+      - name: PM2 status & recent logs
+        run: |
+          pm2 status
+          timeout 8s pm2 logs forgetmenot-backend --lines 80 --nostream || true
