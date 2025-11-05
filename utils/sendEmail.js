@@ -1,30 +1,35 @@
 const nodemailer = require("nodemailer");
 const emailConfig = require("../config/emailConfig");
-const transport = nodemailer.createTransport(emailConfig);
 
-const sendEmails = async (to, subject, content, next) => {
+const transport = nodemailer.createTransport(emailConfig, {
+});
+
+
+const sendEmails = async (to, subject, html, attachments = []) => {
   try {
+    console.log("=== sendEmails called ===");
+    console.log("To:", to);
+    console.log("Subject:", subject);
+    console.log("Attachments count:", attachments.length);
+
     const message = {
       from: {
         name: process.env.MAIL_FROM_NAME,
         address: process.env.MAIL_USERNAME,
       },
-      to: to,
-      subject: subject,
-      html: content,
+      to,
+      subject,
+      html,
+      attachments,
     };
 
-    await transport.sendMail(message);
+    const info = await transport.sendMail(message);
 
-    if (typeof next === "function") {
-      next();
-    }
+    // console.log("✅ Email sent. Message ID:", info.messageId);
+    console.log("SMTP response:", info.response);
   } catch (error) {
-    console.error("Email sending error:", error);
-
-    if (typeof next === "function") {
-      next(error);
-    }
+    console.error("❌ Email sending error:", error);
+    throw error;
   }
 };
 

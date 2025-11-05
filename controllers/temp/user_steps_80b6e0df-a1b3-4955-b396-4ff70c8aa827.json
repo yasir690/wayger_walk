@@ -1,0 +1,24 @@
+[
+  {
+    "id": "b8414d7a-0870-41e4-a875-334c3625d999",
+    "userId": "80b6e0df-a1b3-4955-b396-4ff70c8aa827",
+    "steps": 10,
+    "distance": 0.1,
+    "sources": [
+      "yasir apple watch",
+      "noman Iphone"
+    ],
+    "date": "2025-10-03T10:00:00.000Z"
+  },
+  {
+    "id": "e970aebe-5e46-432d-8631-f05d6256c9c7",
+    "userId": "80b6e0df-a1b3-4955-b396-4ff70c8aa827",
+    "steps": 15,
+    "distance": 0.2,
+    "sources": [
+      "yasir apple watch",
+      "noman Iphone"
+    ],
+    "date": "2025-10-02T10:00:00.000Z"
+  }
+]

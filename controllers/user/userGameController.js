@@ -8,6 +8,9 @@ const uploadFileWithFolder = require("../../utils/s3Upload");
 const { gameStatus, notificationType } = require("@prisma/client");
 const { gameStatusConstants, notificationConstants } = require("../../constants/constants");
 const dayRangeUTC = require("../../utils/dayrangeutc");
+const emailTemplates = require("../../utils/emailTemplate");
+const fs = require('fs');
+const sendEmails = require("../../utils/sendEmail");
 
 const userSearch = async (req, res, next) => {
   try {
@@ -576,12 +579,94 @@ const saveUserStep = async (req, res, next) => {
   }
 }
 
+const showUserStep=async (req,res,next) => {
+  try {
+    const {id}=req.user;
+
+    const finduser=await prisma.userStep.findMany({where:{userId:id}});
+
+    if(finduser.length===0){
+      throw new NotFoundError("user steps not found")
+    }
+
+    handlerOk(res,200,finduser,"user steps found succesfully");
 
 
+  } catch (error) {
+    next(error)
+  }
+}
 
-// ==================================
-// API: WinningDetails (same window)
-// ==================================
+const sendUserSteps = async (req, res, next) => {
+  let filePath = null;
+
+  try {
+    const { email } = req.body;
+    const { id } = req.user;
+
+    // 1️⃣ Fetch user steps
+    const usersteps = await prisma.userStep.findMany({ where: { userId: id } });
+
+    if (!usersteps.length) throw new NotFoundError("User steps not found");
+
+    console.log("Fetched user steps:", usersteps.length);
+
+    // 2️⃣ Create temp JSON file
+    const fileName = `user_steps_${id}.txt`;
+    filePath = path.join(__dirname, "../temp", fileName);
+
+    console.log(filePath,'filepath');
+    
+
+    if (!fs.existsSync(path.dirname(filePath))) {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(usersteps, null, 2));
+    console.log(`Temp file created: ${filePath}`);
+
+    // 3️⃣ Read file into buffer
+    const fileBuffer = fs.readFileSync(filePath);
+    console.log(`File read into buffer: ${fileBuffer.length} bytes`);
+
+    // 4️⃣ Prepare email
+    const emailData = {
+      subject: "Wayger Walk - Your Steps Data",
+      html: emailTemplates.sendFile(fileName),
+    };
+
+    // 5️⃣ Send email with attachment
+    console.log("Sending email with attachment...");
+
+    await sendEmails(email, emailData.subject, emailData.html, [
+  {
+    filename: fileName,
+    path: filePath,          // <-- Use path directly
+    contentType: "application/json",
+  },
+]);
+
+    console.log("✅ Email sent successfully!");
+
+    // 6️⃣ Response
+    handlerOk(res, 200, null, "User steps sent successfully to your email");
+  } catch (error) {
+    console.error("❌ Error in sendUserSteps controller:", error);
+    next(error);
+  } finally {
+    // 7️⃣ Clean up temp file
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+        console.log("Temp file deleted:", filePath);
+      } catch (err) {
+        console.error("Error deleting temp file:", err);
+      }
+    }
+  }
+};
+
+
 const WinningDetails = async (req, res, next) => {
   try {
     const { gameId } = req.params;
@@ -645,42 +730,6 @@ const WinningDetails = async (req, res, next) => {
 
 
 
-
-
-// GET /steps?date=YYYY-MM-DD  (interpreted as UTC day)
-// const teststep = async (req, res, next) => {
-//   try {
-//     const { id } = req.user;
-//     const { date } = req.query; // e.g. "2025-10-02"
-
-//     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-//       throw new BadRequestError("date must be in YYYY-MM-DD format");
-//     }
-
-//     // Build UTC boundaries for the whole day
-//     const [y, m, d] = date.split("-").map(Number);
-//     const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));     // 00:00:00.000Z
-//     const end = new Date(Date.UTC(y, m - 1, d + 1, 0, 0, 0, 0)); // next day 00:00:00.000Z
-
-//     const usersteps = await prisma.userStep.findMany({
-//       where: {
-//         userId: id,
-//         date: { gte: start, lt: end }, // all rows on that UTC day
-//       },
-//       orderBy: { date: "asc" },
-//     });
-
-//     if (usersteps.length === 0) throw new NotFoundError("steps not");
-
-//     handlerOk(res, 200, usersteps, "steps found");
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
-
-
-
 module.exports = {
   createGame,
   showGames,
@@ -691,5 +740,6 @@ module.exports = {
   saveUserStep,
   myGames,
   WinningDetails,
-  // teststep
+  showUserStep,
+  sendUserSteps
 }

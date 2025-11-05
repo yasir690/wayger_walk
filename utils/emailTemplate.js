@@ -134,6 +134,38 @@ const emailTemplates = {
         </div>
       <div>
     `,
+
+    sendFile: (fileName) => `
+  <div
+    style="padding:20px 20px 40px 20px; position: relative; overflow: hidden; width: 100%;"
+  >
+    <div style="z-index:1; position: relative;">
+      <header style="padding-bottom: 20px">
+        <div class="logo" style="text-align:center;">
+        </div>
+      </header>
+      <main
+        style="padding: 20px; background-color: #f5f5f5; border-radius: 10px; width: 80%; margin: 0 auto; margin-bottom: 20px; font-family: 'Poppins', sans-serif;"
+      >
+        <h1 style="color: #fd6835; font-size: 30px; font-weight: 700;">
+          File Delivery - Wayger Walk
+        </h1>
+        <p style="font-size: 20px; text-align: left; font-weight: 500;">
+          Hello,
+        </p>
+        <p style="font-size: 18px; text-align: left;">
+          Please find your requested file <strong>${fileName}</strong> attached to this email.
+        </p>
+        <p style="font-size: 16px; color: #343434; font-style: italic;">
+          If you didn’t request this file, please ignore this email or contact support.
+        </p>
+        <p style="font-size: 20px;">Regards,</p>
+        <p style="font-size: 20px;">Dev Team</p>
+      </main>
+    </div>
+  </div>
+`,
+
   };
   
   module.exports = emailTemplates;

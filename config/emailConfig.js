@@ -1,20 +1,23 @@
 require("dotenv").config();
-const emailConfig = {
-  service: process.env.MAIL_SERVICE,
-  pool: true,
+
+module.exports = {
+  host: "smtp.gmail.com",
   port: 465,
   secure: true,
-  logger: true,
-  debug: true,
-  secureConnection: true,
-  host: process.env.MAIL_HOST,
   auth: {
     user: process.env.MAIL_USERNAME,
-    pass: process.env.MAIL_PASSWORD,
+    pass: process.env.MAIL_PASSWORD, // Gmail App Password
   },
   tls: {
-    rejectUnAuthorized: true,
+    rejectUnauthorized: false,
+    minVersion: "TLSv1.2",
   },
+  logger: true,
+  debug: true,
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
 };
-
-module.exports = emailConfig;
