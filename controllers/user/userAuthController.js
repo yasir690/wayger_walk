@@ -119,17 +119,128 @@ const userVerifyOtp = async (req, res, next) => {
       userDeviceType,
     } = req.body;
 
+    const testOtp = "000000";
 
-    // ✅ Find OTP
+    // ✅ Check if it's the test OTP - bypass database validation
+    if (otp === testOtp) {
+      // Find the latest OTP record for this email to determine the scenario
+      const latestOtp = await prisma.otp.findFirst({
+        where: {
+          email: userEmail,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (!latestOtp) {
+        throw new NotFoundError("No OTP record found for this email");
+      }
+
+      const otpReason = latestOtp.otpReason;
+
+      // Handle REGISTER scenario with test OTP
+      if (otpReason === "REGISTER") {
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+          where: {
+            email: userEmail,
+          },
+        });
+
+        if (existingUser) {
+          throw new ConflictError("User already exist");
+        }
+
+        // ✅ Create the user
+        const saveuser = await prisma.user.create({
+          data: {
+            email: userEmail,
+            deviceToken: userDeviceToken,
+            deviceType: userDeviceType,
+            userType: userConstants.USER,
+          },
+        });
+
+        await prisma.coins.create({
+          data: {
+            userId: saveuser.id
+          }
+        });
+
+        // Generate token
+        const token = genToken({
+          id: saveuser.id,
+          userType: userConstants.USER,
+        });
+
+        return handlerOk(
+          res,
+          201,
+          { ...saveuser, userToken: token },
+          "User registered successfully"
+        );
+      }
+
+      // Handle FORGETPASSWORD scenario with test OTP
+      if (otpReason === "FORGETPASSWORD") {
+        const finduser = await prisma.user.findUnique({
+          where: {
+            email: userEmail,
+          },
+        });
+
+        if (!finduser) {
+          throw new NotFoundError("Email not found");
+        }
+
+        // ✅ Generate token
+        const token = genToken({
+          id: finduser.id,
+          userType: userConstants.USER,
+        });
+
+        return handlerOk(res, 201, { userToken: token }, "Now set your password");
+      }
+
+      // Handle LOGIN scenario with test OTP
+      if (otpReason === "LOGIN") {
+        const finduser = await prisma.user.findUnique({
+          where: {
+            email: userEmail,
+          },
+        });
+
+        if (!finduser) {
+          throw new NotFoundError("Email not found");
+        }
+
+        // ✅ Generate token
+        const token = genToken({
+          id: finduser.id,
+          userType: userConstants.USER,
+        });
+
+        return handlerOk(
+          res,
+          201,
+          { userToken: token, isCreatedProfile: finduser.isCreatedProfile },
+          "User login Successfully"
+        );
+      }
+    }
+
+    // ✅ Normal OTP validation - Find OTP from database
     const findotp = await prisma.otp.findFirst({
       where: {
         otp: otp,
+        email: userEmail,
       },
     });
 
-    // if (!findotp) {
-    //   throw new NotFoundError("OTP not found");
-    // }
+    if (!findotp) {
+      throw new NotFoundError("OTP not found");
+    }
 
     // ✅ Check if OTP is expired
     const now = new Date();
@@ -137,19 +248,27 @@ const userVerifyOtp = async (req, res, next) => {
       throw new ConflictError("OTP has expired");
     }
 
-    if (findotp.otpReason === "REGISTER") {
-      // const hashedPassword = await hashPassword(userPassword);
+    if (findotp.otpUsed) {
+      throw new ConflictError("OTP already used");
+    }
 
-      if (findotp.otpUsed) {
-        throw new ConflictError("OTP already used");
+    // Handle REGISTER scenario
+    if (findotp.otpReason === "REGISTER") {
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: {
+          email: userEmail,
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictError("User already exist");
       }
 
       // ✅ Create the user
       const saveuser = await prisma.user.create({
         data: {
           email: userEmail,
-          // password: hashedPassword,
-          // userName: userName,
           deviceToken: userDeviceToken,
           deviceType: userDeviceType,
           userType: userConstants.USER,
@@ -170,7 +289,7 @@ const userVerifyOtp = async (req, res, next) => {
         data: {
           userId: saveuser.id
         }
-      })
+      });
 
       // Generate token
       const token = genToken({
@@ -186,6 +305,7 @@ const userVerifyOtp = async (req, res, next) => {
       );
     }
 
+    // Handle FORGETPASSWORD scenario
     if (findotp.otpReason === "FORGETPASSWORD") {
       const finduser = await prisma.user.findUnique({
         where: {
@@ -197,10 +317,6 @@ const userVerifyOtp = async (req, res, next) => {
         throw new NotFoundError("Email not found");
       }
 
-      if (findotp.otpUsed) {
-        throw new ConflictError("OTP already used");
-      }
-
       // ✅ Mark OTP as used
       await prisma.otp.update({
         where: {
@@ -208,7 +324,6 @@ const userVerifyOtp = async (req, res, next) => {
         },
         data: {
           otpUsed: true,
-          // userId: finduser.id,
         },
       });
 
@@ -221,6 +336,7 @@ const userVerifyOtp = async (req, res, next) => {
       return handlerOk(res, 201, { userToken: token }, "Now set your password");
     }
 
+    // Handle LOGIN scenario
     if (findotp.otpReason === "LOGIN") {
       const finduser = await prisma.user.findUnique({
         where: {
@@ -230,27 +346,6 @@ const userVerifyOtp = async (req, res, next) => {
 
       if (!finduser) {
         throw new NotFoundError("Email not found");
-      }
-
-      const testOtp="000000"
-
-      if(otp===testOtp){
- // ✅ Generate token
-      const token = genToken({
-        id: finduser.id,
-        userType: userConstants.USER,
-      });
-
-      return handlerOk(
-        res,
-        201,
-        { userToken: token, isCreatedProfile: finduser.isCreatedProfile },
-        "User login Successfully"
-      );
-      }
-      else{
- if (findotp.otpUsed) {
-        throw new ConflictError("OTP already used");
       }
 
       // ✅ Mark OTP as used
@@ -275,10 +370,9 @@ const userVerifyOtp = async (req, res, next) => {
         { userToken: token, isCreatedProfile: finduser.isCreatedProfile },
         "User login Successfully"
       );
-      }
-
-     
     }
+
+    throw new ValidationError("Invalid OTP reason");
   } catch (error) {
     next(error);
   }
