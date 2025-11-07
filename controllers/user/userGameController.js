@@ -601,8 +601,8 @@ const sendUserSteps = async (req, res, next) => {
   let filePath = null;
 
   try {
-    const { email } = req.body;
-    const { id } = req.user;
+    // const { email } = req.body;
+    const { id,email } = req.user;
 
     // 1️⃣ Fetch user steps
     const usersteps = await prisma.userStep.findMany({ where: { userId: id } });
@@ -726,6 +726,25 @@ const WinningDetails = async (req, res, next) => {
   }
 };
 
+// const deleteUserSteps=async (req,res,next) => {
+//   try {
+//     const {id}=req.user;
+
+//     const deleteusersteps=await prisma.userStep.deleteMany({
+//       where:{
+//         userId:id
+//       }
+//     });
+
+//     if(!deleteusersteps){
+//       throw new ValidationError("user steps delete successfully")
+//     }
+
+//     handlerOk(res,200,null,"user steps deleted succesfully");
+//   } catch (error) {
+//     next(error)
+//   }
+// }
 
 
 
@@ -741,5 +760,6 @@ module.exports = {
   myGames,
   WinningDetails,
   showUserStep,
-  sendUserSteps
+  sendUserSteps,
+  // deleteUserSteps
 }

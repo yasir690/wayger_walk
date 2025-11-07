@@ -83,9 +83,16 @@ userGameRouter.post(
   "/sendUserSteps",
   // limiter,
   verifyUserToken,
-  validateRequest(userSendStepsSchema),
+  // validateRequest(userSendStepsSchema),
   userGameController.sendUserSteps
 );
+
+// userGameRouter.delete(
+//   "/deleteUserSteps",
+//   // limiter,
+//   verifyUserToken,
+//   userGameController.deleteUserSteps
+// );
 
 userGameRouter.get(
   "/WinningDetails/:gameId",
