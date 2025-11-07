@@ -127,9 +127,9 @@ const userVerifyOtp = async (req, res, next) => {
       },
     });
 
-    if (!findotp) {
-      throw new NotFoundError("OTP not found");
-    }
+    // if (!findotp) {
+    //   throw new NotFoundError("OTP not found");
+    // }
 
     // ✅ Check if OTP is expired
     const now = new Date();
