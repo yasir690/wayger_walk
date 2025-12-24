@@ -21,21 +21,21 @@ const showAllAdminTransactions = async (req, res, next) => {
 
     // return ''
 
-    // const findadminwallettransactions = await prisma.adminWalletTransaction.findMany({
-    //   where: {
-    //     adminId: id
-    //   }
-    // });
+    const findadminwallettransactions = await prisma.adminWalletTransaction.findMany({
+      where: {
+        walletId: findadminwallet.id
+      }
+    });
 
-    // if (findadminwallettransactions.length === 0) {
-    //   throw new NotFoundError("wallet transaction not found")
-    // }
+    if (findadminwallettransactions.length === 0) {
+      throw new NotFoundError("wallet transaction not found")
+    }
 
 
 
     handlerOk(res, 200, {
       balance: findadminwallet.balance,
-      // findadminwallettransactions
+      findadminwallettransactions
     }, "admin wallet and transaction found successfully")
   } catch (error) {
     next(error)

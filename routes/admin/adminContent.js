@@ -5,7 +5,7 @@ const validateRequest = require("../../middleware//validateRequest");
 const adminContentRouter = require("express").Router();
 const adminContentController = require("../../controllers/admin/adminContentController");
 const { verifyAdminToken } = require("../../middleware/auth");
-const { adminCreatePrivacyPolicySchema, adminUpdatePrivacyPolicySchema, adminCreateTermsConditionSchema, adminUpdateTermsConditionSchema, adminUpdateAboutAppSchema, adminCreateAboutAppSchema } = require("../../schema/admin/content");
+const { adminCreatePrivacyPolicySchema, adminUpdatePrivacyPolicySchema, adminCreateTermsConditionSchema, adminUpdateTermsConditionSchema, adminUpdateAboutAppSchema, adminCreateAboutAppSchema, adminShowGameSchema } = require("../../schema/admin/content");
 
 adminContentRouter.get("/showAllUsers",
   // limiter,
@@ -96,6 +96,13 @@ adminContentRouter.get("/showAllUsersFeedBack",
   // limiter,
   verifyAdminToken,
   adminContentController.showAllUsersFeedBack
+);
+
+adminContentRouter.get("/showAllGames",
+  // limiter,
+  verifyAdminToken,
+  validateRequest(adminShowGameSchema),
+  adminContentController.showAllGames
 );
 
 

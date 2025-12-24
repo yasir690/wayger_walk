@@ -56,6 +56,16 @@ const adminUpdateAboutAppSchema = Joi.object({
   }),
 });
 
+const adminShowGameSchema = Joi.object({
+  query: Joi.object({
+    gameType:Joi.string().valid("TOURNAMENT", "ONEONONE").optional(),
+  }),
+  params: Joi.object({
+  }),
+  body: Joi.object({
+  }),
+});
+
 
 
 module.exports = {
@@ -64,6 +74,7 @@ module.exports = {
   adminCreateTermsConditionSchema,
   adminUpdateTermsConditionSchema,
   adminCreateAboutAppSchema,
-  adminUpdateAboutAppSchema
+  adminUpdateAboutAppSchema,
+  adminShowGameSchema
   
 }

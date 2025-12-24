@@ -364,6 +364,25 @@ const showAllUsersFeedBack=async (req,res,next) => {
     }
 }
 
+const showAllGames=async(req,res,next)=>{
+  try {
+    const {gameType}=req.query;
+    const findusergames=await prisma.game.findMany({
+      where:{
+        gameType:gameType
+      }
+    });
+
+    if(findusergames.length===0){
+      throw new NotFoundError("user games not found");
+    }
+
+    handlerOk(res,200,findusergames,"user games found successfully");
+    
+  } catch (error) {
+    next(error)
+  }
+}
 
 module.exports = {
   showAllUsers,
@@ -379,5 +398,6 @@ module.exports = {
   createAboutApp,
   showAboutApp,
   updateAboutApp,
-  showAllUsersFeedBack
+  showAllUsersFeedBack,
+  showAllGames
 }
