@@ -37,6 +37,17 @@ jobs:
   
 
     steps:
+      # Checkout code first
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Use Node.js (setup before other steps that need node)
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
       # Print the environment info to quickly debug issues
       - name: Kickoff
         run: |
@@ -44,15 +55,11 @@ jobs:
           echo "== CI kickoff at $(date -u) =="
           echo "Runner: $(uname -a)"
           whoami
-          node -v || true
-          npm -v || true
-
-      # Checkout code
-      - name: Checkout
-        uses: actions/checkout@v4
+          node -v
+          npm -v
 
       # Create .env file from secrets with validation
-      - name: Create .env from secrets (no heredoc)
+      - name: Create .env from secrets
         run: |
           set -euo pipefail
 
@@ -67,7 +74,7 @@ jobs:
           printf '%s\n' "DATABASE_URL=${DB_URL_VALUE}"            >> .env
           printf '%s\n' "NODE_ENV=production"                     >> .env
           printf '%s\n' "PORT=${PORT}"                            >> .env
-          printf '%s\n' "API_PRIFEX=${API_PRIFEX}"                            >> .env
+          printf '%s\n' "API_PRIFEX=${API_PRIFEX}"                >> .env
           printf '%s\n' "SECRET_KEY=${SECRET_KEY}"                >> .env
           printf '%s\n' "MAIL_SERVICE=${MAIL_SERVICE}"            >> .env
           printf '%s\n' "MAIL_HOST=${MAIL_HOST}"                  >> .env
@@ -76,11 +83,11 @@ jobs:
           printf '%s\n' "MAIL_ENCRYPTION=${MAIL_ENCRYPTION}"      >> .env
           printf '%s\n' "MAIL_PORT=${MAIL_PORT}"                  >> .env
           printf '%s\n' "MAIL_FROM_NAME=${MAIL_FROM_NAME}"        >> .env
-          printf '%s\n' "ACCESS_KEY_ID=${ACCESS_KEY_ID}"        >> .env
-          printf '%s\n' "SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}"        >> .env
-          printf '%s\n' "BUCKET_REGION=${BUCKET_REGION}"        >> .env
-          printf '%s\n' "BUCKET_NAME=${BUCKET_NAME}"        >> .env
-          printf '%s\n' "S3_ACCESS_URL=${S3_ACCESS_URL}"        >> .env
+          printf '%s\n' "ACCESS_KEY_ID=${ACCESS_KEY_ID}"          >> .env
+          printf '%s\n' "SECRET_ACCESS_KEY=${SECRET_ACCESS_KEY}"   >> .env
+          printf '%s\n' "BUCKET_REGION=${BUCKET_REGION}"          >> .env
+          printf '%s\n' "BUCKET_NAME=${BUCKET_NAME}"              >> .env
+          printf '%s\n' "S3_ACCESS_URL=${S3_ACCESS_URL}"          >> .env
           echo "Wrote .env with $(wc -l < .env) lines."
 
           # Validate the environment variables
@@ -92,23 +99,14 @@ jobs:
             echo "ERROR: DATABASE_URL in .env is empty"; exit 1
           fi
 
-      # Use Node.js
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-          cache: npm
-
       # Install dependencies
       - name: Install dependencies
         run: npm ci --loglevel=verbose --foreground-scripts
 
       # Prisma generation & migration
-      - name: Build & Prisma migrate (verbose)
+      - name: Build & Prisma migrate
         run: |
           set -euxo pipefail
-          echo "=== npm ci ==="
-          npm ci --loglevel=verbose --foreground-scripts
           echo "=== build (if present) ==="
           npm run build --if-present
           echo "=== prisma generate ==="
