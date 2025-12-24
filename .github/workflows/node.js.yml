@@ -37,6 +37,17 @@ jobs:
   
 
     steps:
+      # Verify runner is ready
+      - name: Verify runner environment
+        run: |
+          echo "=== Runner Environment Check ==="
+          echo "Runner OS: $(uname -a)"
+          echo "Current user: $(whoami)"
+          echo "Working directory: $(pwd)"
+          echo "Available disk space:"
+          df -h . || true
+          echo "=== Runner check complete ==="
+
       # Checkout code first
       - name: Checkout
         uses: actions/checkout@v4
