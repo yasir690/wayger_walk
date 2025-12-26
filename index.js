@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require("cors");
 const bodyParser = require("body-parser");
 require("dotenv").config();
+// require('dotenv').config({ path: __dirname + '/.env' });
 const app = express();
 const port = process.env.PORT || 4000;
 const API_PRIFEX = '/api/v1';  // Prefix for all routes
@@ -20,7 +21,7 @@ const adminWalletSeed = require('./seeder/adminWalletSeed');
 const dayRangeUTC = require('./utils/dayrangeutc');
 
 
-require("dotenv").config();
+// require("dotenv").config();
 
 
 
