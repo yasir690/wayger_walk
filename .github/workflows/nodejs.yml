@@ -121,9 +121,10 @@ jobs:
           echo "=== build (if present) ==="
           npm run build --if-present
           echo "=== prisma generate ==="
-          unset DATABASE_URL || true
+          # Generate doesn't need DATABASE_URL connection, but we keep env var for migrate step
           npx prisma generate
           echo "=== prisma migrate ==="
+          # DATABASE_URL is already set from workflow env section, use it for migrations
           npx prisma migrate deploy || npx prisma db push
 
       # Ensure PM2 is installed
