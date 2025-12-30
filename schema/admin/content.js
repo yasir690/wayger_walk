@@ -68,6 +68,19 @@ const adminShowGameSchema = Joi.object({
 
 
 
+const adminCreateWithdrawalRequestSchema = Joi.object({
+  query: Joi.object({}),
+  params: Joi.object({}),
+  body: Joi.object({
+    amount: Joi.number().positive().required().messages({
+      "number.base": "Amount must be a number",
+      "number.positive": "Amount must be greater than 0",
+      "any.required": "Amount is required"
+    }),
+    description: Joi.string().optional(),
+  }),
+});
+
 module.exports = {
   adminCreatePrivacyPolicySchema,
   adminUpdatePrivacyPolicySchema,
@@ -75,6 +88,6 @@ module.exports = {
   adminUpdateTermsConditionSchema,
   adminCreateAboutAppSchema,
   adminUpdateAboutAppSchema,
-  adminShowGameSchema
-  
+  adminShowGameSchema,
+  adminCreateWithdrawalRequestSchema
 }

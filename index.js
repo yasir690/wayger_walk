@@ -175,14 +175,14 @@ const totals = await prisma.userStep.groupBy({
           update: { balance: { increment: deductionAmount } },
         });
 
-        await tx.adminWalletTransaction.create({
-          data: {
-            walletId: adminWallet.id,
-            amount: deductionAmount,
-            gameId,
-            description: `Admin's share of game "${gameTitle}" earnings`,
-          },
-        });
+        // await tx.adminWalletTransaction.create({
+        //   data: {
+        //     walletId: adminWallet.id,
+        //     amount: deductionAmount,
+        //     gameId,
+        //     description: `Admin's share of game "${gameTitle}" earnings`,
+        //   },
+        // });
 
         // Notify winner
         await tx.notification.create({
